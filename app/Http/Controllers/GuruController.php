@@ -563,23 +563,51 @@ public function cetakRaport(int $id)
         return redirect()->back()->with('success', 'Data berhasil dihapus!');
     }
 
-   public function rekapNilai(Request $request)
-    {
-        // Ambil daftar kelas untuk filter di halaman rekap
-        $kelasList = \App\Models\Siswa::select('kelas')->distinct()->get();
-        
-        // Ambil data nilai (Pastikan model Nilai kamu sudah ada)
-        // Sesuaikan query-nya dengan struktur database kamu
-        $dataNilai = \App\Models\Nilai::with(['siswa', 'mapel'])
-            ->when($request->kelas, function($query) use ($request) {
-                return $query->whereHas('siswa', function($q) use ($request) {
-                    $q->where('kelas', $request->kelas);
-                });
-            })
-            ->get();
+public function rekapNilai(Request $request)
+{
+    // 1. Ambil data Guru yang sedang login
+    $guru = auth()->user()->guru;
 
-        return view('guru.nilai.rekap', compact('dataNilai', 'kelasList'));
+    // 2. Ambil semua jadwal milik guru tersebut untuk isi dropdown
+    $jadwals = \App\Models\Jadwal::with(['mapel'])
+                ->where('guru_id', $guru->id)
+                ->get();
+
+    // 3. Ambil setting untuk menampilkan Tahun Akademik di header
+    $setting = \App\Models\Setting::first();
+
+    // 4. Inisialisasi variabel pendukung agar tidak "Undefined" saat halaman pertama dimuat
+    $jadwalTerpilih = null;
+    $siswas = [];
+    $dataNilai = [];
+
+    // 5. Cek jika guru sudah memilih jadwal di dropdown
+    if ($request->filled('jadwal_id')) {
+        // Ambil data jadwal spesifik yang dipilih guru
+        $jadwalTerpilih = \App\Models\Jadwal::with(['mapel', 'kelas'])->find($request->jadwal_id);
+        
+        if ($jadwalTerpilih) {
+            // Ambil daftar siswa berdasarkan kelas dari jadwal yang dipilih
+            $siswas = \App\Models\Siswa::where('kelas', $jadwalTerpilih->kelas)->get();
+            
+            // Ambil data nilai yang sudah ada (untuk ditampilkan di input form)
+            $dataNilai = \App\Models\Nilai::where('jadwal_id', $jadwalTerpilih->id)->get();
+        }
     }
+
+    // 6. Ambil daftar kelas unik (opsional, jika masih dibutuhkan di view)
+    $kelasList = \App\Models\Siswa::select('kelas')->distinct()->get();
+
+    // Pastikan 'jadwalTerpilih' masuk ke dalam compact
+    return view('guru.nilai.manajemen', compact(
+        'jadwals', 
+        'jadwalTerpilih', 
+        'setting', 
+        'siswas', 
+        'dataNilai', 
+        'kelasList'
+    ));
+}
 
     public function leggerJadwal(int $id)
     {
