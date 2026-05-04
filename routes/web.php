@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\NilaiController; 
 
 use App\Http\Controllers\Guru\AbsensiController as GuruAbsensiController;
+use App\Http\Controllers\Admin\AbsensiController as AdminAbsensiController;
 /*
 |--------------------------------------------------------------------------
 | 1. HOMEPAGE
@@ -76,6 +77,10 @@ Route::middleware('auth')->group(function () {
         // PERBAIKAN: Menggunakan Alias GuruAbsensiController
         Route::get('/absensi/rekap', [GuruAbsensiController::class, 'rekap'])->name('absensi.rekap');
         Route::resource('absensi', GuruAbsensiController::class)->only(['index', 'show']);
+
+        // Manajemen Absensi (Monitoring) untuk ADMIN
+        Route::get('/absensi/rekap', [AdminAbsensiController::class, 'rekap'])->name('absensi.rekap');
+        Route::resource('absensi', AdminAbsensiController::class)->only(['index', 'show']);
         
         // --- MANAJEMEN NILAI ---
         Route::controller(NilaiController::class)->prefix('nilai')->name('nilai.')->group(function () {

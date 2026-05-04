@@ -31,24 +31,25 @@
                             class="bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer">
                     </div>
 
-                    {{-- Filter Kelas Dinamis --}}
+                    {{-- Filter Kelas (Dinamis dari Database) --}}
                     <div class="flex flex-col gap-1.5">
                         <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">Pilih Kelas</label>
                         <div class="relative group">
-                            <select name="kelas" class="w-48 bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer">
+                            <select name="kelas" class="w-48 bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
                                 <option value="">-- Semua Kelas --</option>
-                                {{-- Pengecekan data listKelas dari Controller --}}
+                                
                                 @if(isset($listKelas) && $listKelas->count() > 0)
                                     @foreach($listKelas as $k)
-                                        {{-- Menggunakan nama_kelas sesuai tabel database Anda --}}
+                                        {{-- Value menggunakan nama_kelas agar sesuai dengan logic filter di Controller --}}
                                         <option value="{{ $k->nama_kelas }}" {{ request('kelas') == $k->nama_kelas ? 'selected' : '' }}>
                                             Kelas {{ $k->nama_kelas }}
                                         </option>
                                     @endforeach
                                 @else
-                                    <option disabled>Kelas tidak tersedia</option>
+                                    <option value="" disabled>Data Kelas Kosong</option>
                                 @endif
                             </select>
+                            {{-- Icon Panah --}}
                             <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-gray-300 text-[9px] pointer-events-none group-focus-within:rotate-180 transition-transform"></i>
                         </div>
                     </div>
@@ -62,7 +63,7 @@
             </div>
         </div>
 
-        {{-- Info Bar --}}
+        {{-- Info Bar & Table tetap sama seperti sebelumnya --}}
         <div class="px-8 py-3 bg-white flex items-center justify-between border-b border-gray-50">
             <div class="flex items-center gap-2">
                 <div class="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
@@ -73,7 +74,6 @@
             </span>
         </div>
 
-        {{-- Tabel Absensi --}}
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead>
@@ -94,14 +94,13 @@
                                 <span class="font-black text-slate-700 uppercase text-sm">
                                     {{ $a->siswa->nama ?? 'Siswa Terhapus' }}
                                 </span>
-                                <span class="text-[9px] text-gray-400 font-bold italic">
+                                <span class="text-[9px] text-gray-400 font-bold italic uppercase">
                                     NISN: {{ $a->siswa->nisn ?? '-' }}
                                 </span>
                             </div>
                         </td>
                         <td class="px-8 py-5 text-center">
                             <span class="bg-blue-50 text-blue-700 text-[10px] font-black px-3 py-1.5 rounded-lg border border-blue-100 uppercase">
-                                {{-- Menggunakan dataKelas sesuai relasi di Model Siswa --}}
                                 {{ $a->siswa->dataKelas->nama_kelas ?? 'N/A' }}
                             </span>
                         </td>
@@ -131,9 +130,7 @@
                         <td colspan="5" class="px-8 py-24 text-center">
                             <div class="flex flex-col items-center gap-2">
                                 <i class="fa-solid fa-clipboard-question text-gray-200 text-4xl mb-2"></i>
-                                <p class="text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                                    Belum ada data absensi untuk parameter ini
-                                </p>
+                                <p class="text-[10px] font-black text-gray-300 uppercase tracking-widest">Belum ada data absensi</p>
                             </div>
                         </td>
                     </tr>

@@ -36,7 +36,7 @@
                 <select name="kelas" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-gray-800 outline-none">
                     <option value="">Semua Kelas</option>
                     @foreach($kelasList as $k)
-                        <option value="{{ $k->kelas }}" {{ request('kelas') == $k->kelas ? 'selected' : '' }}>{{ $k->kelas }}</option>
+                            <option value="{{ $k->kelas }}" {{ request('kelas') == $k->kelas ? 'selected' : '' }}>{{ $k->kelas }}</option>
                     @endforeach
                 </select>
             </div>

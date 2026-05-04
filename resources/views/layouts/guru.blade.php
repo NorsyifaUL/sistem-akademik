@@ -162,7 +162,7 @@
 
         <div class="p-4 border-t border-green-800/50">
             <p x-show="sidebarOpen" class="text-[9px] text-center text-green-400 uppercase font-bold tracking-tighter" x-transition.opacity>&copy; 2026 SIAKAD SMANJA</p>
-            <p x-show="!sidebarOpen" class="text-center font-bold text-green-400">SJ</p>
+            <p x-show="!sidebarOpen" class="text-center font-bold text-green-400"></p>
         </div>
     </aside>
 
