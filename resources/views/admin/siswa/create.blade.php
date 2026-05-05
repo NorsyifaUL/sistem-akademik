@@ -21,32 +21,39 @@
             <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-xl mb-6">
                 <ul class="list-none">
                     @foreach ($errors->all() as $error)
-                        <li class="text-[10px] text-rose-600 font-black uppercase tracking-tight">{{ $error }}</li>
+                        <li class="text-[10px] text-rose-600 font-black uppercase tracking-tight flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation"></i> {{ $error }}
+                        </li>
                     @endforeach
                 </ul>
             </div>
             @endif
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {{-- Nama Lengkap --}}
                 <div class="md:col-span-2">
                     <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Nama Lengkap Siswa</label>
-                    <input type="text" name="nama" placeholder="Contoh: Norsyifa Ulahasanah" value="{{ old('nama') }}"
+                    <input type="text" name="nama" placeholder="Contoh: Norsyifa Ulhasanah" value="{{ old('nama') }}"
                            class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold transition-all outline-none" required>
                 </div>
 
+                {{-- NISN --}}
                 <div>
                     <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">NISN</label>
                     <input type="text" name="nisn" placeholder="Contoh: 0012345" value="{{ old('nisn') }}"
                            class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold transition-all outline-none" required>
                 </div>
 
+                {{-- Pilih Kelas --}}
                 <div>
                     <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Kelas</label>
                     <div class="relative">
-                        <select name="kelas" class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold transition-all outline-none appearance-none cursor-pointer" required>
+                        <select name="kelas_id" class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold transition-all outline-none appearance-none cursor-pointer" required>
                             <option value="" disabled selected>Pilih Kelas</option>
-                            @foreach(['X 1', 'X 2', 'XI 1', 'XI 2', 'XII IPA', 'XII IPS'] as $kls)
-                                <option value="{{ $kls }}" {{ old('kelas') == $kls ? 'selected' : '' }}>Kelas {{ $kls }}</option>
+                            @foreach($kelasList as $kls)
+                                <option value="{{ $kls->id }}" {{ old('kelas_id') == $kls->id ? 'selected' : '' }}>
+                                    Kelas {{ $kls->nama_kelas }}
+                                </option>
                             @endforeach
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-400">
@@ -55,12 +62,14 @@
                     </div>
                 </div>
 
+                {{-- Email Akun --}}
                 <div>
                     <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Email Akun</label>
                     <input type="email" name="email" placeholder="siswa@mail.com" value="{{ old('email') }}"
                            class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold transition-all outline-none" required>
                 </div>
 
+                {{-- No WA Ortu --}}
                 <div>
                     <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">No WA Orang Tua</label>
                     <input type="text" name="no_wa_ortu" placeholder="628xxxxxxxxxx" value="{{ old('no_wa_ortu') }}"
@@ -68,21 +77,31 @@
                 </div>
             </div>
 
+            {{-- Info Password --}}
             <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 border-dashed flex items-center gap-3">
                 <i class="fa-solid fa-info-circle text-blue-500"></i>
-                <p class="text-[11px] text-blue-700 font-bold uppercase">Password Default: <span class="underline">password123</span></p>
+                <p class="text-[11px] text-blue-700 font-bold uppercase tracking-tight">Siswa akan otomatis dibuatkan akun dengan password: <span class="underline">password123</span></p>
             </div>
 
-            <div class="pt-6 flex justify-between items-center border-t border-gray-50">
+            {{-- Action Buttons --}}
+            <div class="pt-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-50">
+                {{-- Tombol Batal Merah --}}
                 <a href="{{ route('admin.siswa.index') }}" 
-                   class="px-8 py-2.5 rounded-lg text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all shadow-md shadow-rose-100 uppercase tracking-widest text-center">
+                   class="w-full md:w-auto px-10 py-3 rounded-xl text-sm font-black text-white bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-100 transition-all active:scale-95 uppercase tracking-widest text-center">
                     Batal
                 </a>
-                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-3 px-10 rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 uppercase tracking-widest text-sm">
-                    Simpan Siswa
+                
+                {{-- Tombol Simpan --}}
+                <button type="submit" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-black py-3 px-10 rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 uppercase tracking-widest text-sm">
+                    Simpan Data Siswa
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<style>
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+</style>
 @endsection

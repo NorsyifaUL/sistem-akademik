@@ -13,7 +13,7 @@
         </a>
     </div>
 
-    {{-- Notifikasi Sukses --}}
+    {{-- Notifikasi Sukses/Error --}}
     @if(session('success'))
     <div class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-xl flex items-center gap-3 animate-fade-in">
         <i class="fa-solid fa-circle-check text-emerald-500"></i>
@@ -21,7 +21,14 @@
     </div>
     @endif
 
-    {{-- Main Card dengan Garis Biru --}}
+    @if(session('error'))
+    <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-xl flex items-center gap-3 animate-fade-in">
+        <i class="fa-solid fa-circle-xmark text-rose-500"></i>
+        <p class="text-sm text-rose-700 font-bold uppercase tracking-tight">{{ session('error') }}</p>
+    </div>
+    @endif
+
+    {{-- Main Card --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden border-t-4 border-t-blue-600">
         
         {{-- Area Search & Filter --}}
@@ -37,13 +44,13 @@
                            class="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                 </div>
 
-                {{-- Dropdown Filter Kelas --}}
+                {{-- Dropdown Filter Kelas (Dinamis dari Tabel Kelas) --}}
                 <div class="relative md:w-44">
-                    <select name="kelas" class="w-full pl-4 pr-10 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none font-bold text-gray-600 cursor-pointer">
+                    <select name="kelas_id" class="w-full pl-4 pr-10 py-2 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 appearance-none font-bold text-gray-600 cursor-pointer">
                         <option value="">-- Semua Kelas --</option>
-                        @foreach(['X 1', 'X 2', 'XI 1', 'XI 2', 'XII IPA', 'XII IPS'] as $kls)
-                            <option value="{{ $kls }}" {{ request('kelas') == $kls ? 'selected' : '' }}>
-                                Kelas {{ $kls }}
+                        @foreach($kelasList as $kls)
+                            <option value="{{ $kls->id }}" {{ request('kelas_id') == $kls->id ? 'selected' : '' }}>
+                                Kelas {{ $kls->nama_kelas }}
                             </option>
                         @endforeach
                     </select>
@@ -58,7 +65,7 @@
                         Filter
                     </button>
 
-                    @if(request('search') || request('kelas'))
+                    @if(request('search') || request('kelas_id'))
                     <a href="{{ route('admin.siswa.index') }}" class="bg-rose-50 text-rose-600 border border-rose-100 px-4 py-2 rounded-lg text-sm font-bold hover:bg-rose-600 hover:text-white transition-all text-center uppercase tracking-widest">
                         Reset
                     </a>
@@ -92,7 +99,7 @@
                         </td>
                         <td class="px-6 py-4">
                             <p class="font-black text-gray-700 leading-tight group-hover:text-blue-600 transition-colors uppercase">{{ $item->nama }}</p>
-                            <p class="text-[10px] text-gray-400 font-bold mt-0.5 italic lowercase tracking-wider">{{ $item->user->email }}</p>
+                            <p class="text-[10px] text-gray-400 font-bold mt-0.5 italic lowercase tracking-wider">{{ $item->user->email ?? '-' }}</p>
                         </td>
                         <td class="px-6 py-4">
                             <span class="bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md font-bold text-[11px] tracking-wider border border-gray-200">
@@ -101,7 +108,8 @@
                         </td>
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-100 uppercase">
-                                {{ $item->kelas }}
+                                {{-- Mengambil data dari relasi dataKelas di model Siswa --}}
+                                {{ $item->dataKelas->nama_kelas ?? 'N/A' }}
                             </span>
                         </td>
                         <td class="px-6 py-4">
@@ -112,12 +120,10 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex justify-center gap-1">
-                                {{-- Edit --}}
                                 <a href="{{ route('admin.siswa.edit', $item->id) }}" 
                                    class="w-8 h-8 flex items-center justify-center text-orange-400 hover:bg-orange-50 rounded-lg transition-all" title="Edit Data">
                                     <i class="fa-solid fa-pen-to-square text-sm"></i>
                                 </a>
-                                {{-- Reset Password --}}
                                 <form action="{{ route('admin.siswa.reset-password', $item->id) }}" method="POST" class="inline">
                                     @csrf
                                     <button class="w-8 h-8 flex items-center justify-center text-blue-500 hover:bg-blue-50 rounded-lg transition-all" 
@@ -125,7 +131,6 @@
                                         <i class="fa-solid fa-key text-sm"></i>
                                     </button>
                                 </form>
-                                {{-- Hapus --}}
                                 <form action="{{ route('admin.siswa.destroy', $item->id) }}" method="POST" class="inline">
                                     @csrf @method('DELETE')
                                     <button class="w-8 h-8 flex items-center justify-center text-rose-400 hover:bg-rose-50 rounded-lg transition-all" 

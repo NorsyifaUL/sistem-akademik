@@ -5,16 +5,31 @@ use Illuminate\Support\ServiceProvider;
 
 return [
 
-    // ... (bagian atas name, env, dll tetap sama) ...
+    /*
+    |--------------------------------------------------------------------------
+    | Application Timezone
+    |--------------------------------------------------------------------------
+    | Diatur ke WITA (Asia/Makassar) karena lokasi kampus Anda.
+    */
     'name' => env('APP_NAME', 'Laravel'),
     'env' => env('APP_ENV', 'production'),
     'debug' => (bool) env('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost'),
     'asset_url' => env('ASSET_URL'),
-    'timezone' => 'UTC',
-    'locale' => 'en',
-    'fallback_locale' => 'en',
-    'faker_locale' => 'en_US',
+    
+    // UPDATE: Dari UTC menjadi Asia/Makassar (WITA)
+    'timezone' => 'Asia/Makassar', 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Application Locale Configuration
+    |--------------------------------------------------------------------------
+    | UPDATE: Dari 'en' menjadi 'id' agar nama hari/bulan otomatis Bahasa Indonesia
+    */
+    'locale' => 'id',
+    'fallback_locale' => 'id',
+    'faker_locale' => 'id_ID',
+
     'key' => env('APP_KEY'),
     'cipher' => 'AES-256-CBC',
     'maintenance' => [
@@ -27,7 +42,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'providers' => ServiceProvider::defaultProviders()->merge([
-        Barryvdh\DomPDF\ServiceProvider::class, // Tambahkan ini
+        Barryvdh\DomPDF\ServiceProvider::class,
         
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
@@ -41,7 +56,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'aliases' => Facade::defaultAliases()->merge([
-        'PDF' => Barryvdh\DomPDF\Facade\Pdf::class, // Menggunakan \Pdf di ujungnya
+        'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
     ])->toArray(),
 
 ];

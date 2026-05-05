@@ -22,16 +22,14 @@
     <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div class="h-1.5 bg-green-600 w-full"></div>
 
-        {{-- 1. HEADER --}}
+        {{-- 1. HEADER (Tombol Cetak Sudah Dihapus) --}}
         <div class="p-8 border-b border-gray-100">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h2 class="text-2xl font-black text-gray-800 uppercase tracking-tighter italic">Rekapitulasi Presensi</h2>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">SMAN 1 Jejangkit — <span class="text-green-600 italic">Laporan Kehadiran</span></p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Laporan Kehadiran Siswa — <span class="text-green-600 italic">Mode Guru</span></p>
                 </div>
-                <button onclick="window.print()" class="bg-gray-50 border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all shadow-sm flex items-center gap-2">
-                    <i class="fas fa-print"></i> Cetak Laporan
-                </button>
+                {{-- Tombol cetak dihilangkan agar hanya Admin yang bisa mengeksekusi laporan final --}}
             </div>
         </div>
 
@@ -127,7 +125,6 @@
                                 <span class="px-3 py-1.5 rounded-full text-[9px] font-black uppercase border {{ $color }}">{{ $st }}</span>
                             </td>
 
-                            {{-- STATUS WA DENGAN FITUR RESEND --}}
                             <td class="px-8 py-6 text-center">
                                 @if(in_array(strtoupper($r->status), ['ALPA', 'A']))
                                     <div class="flex flex-col items-center gap-1">
@@ -138,7 +135,6 @@
                                             <i class="fas fa-exclamation-circle text-red-500 text-[10px]"></i>
                                             <span class="text-[8px] font-black text-red-600 uppercase tracking-tighter mb-1">Gagal</span>
                                             
-                                            {{-- FORM KIRIM ULANG --}}
                                             <form action="{{ route('guru.absensi.resend', $r->id) }}" method="POST">
                                                 @csrf
                                                 <button type="submit" class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-tighter hover:bg-red-700 hover:text-white transition-all shadow-sm">
@@ -186,6 +182,7 @@
     </div>
 </div>
 
+{{-- SCRIPT TETAP SAMA --}}
 <script>
     const modeSelect = document.getElementById('modeSelect');
     const dailyWrapper = document.getElementById('dailyInputWrapper');

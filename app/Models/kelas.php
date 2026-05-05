@@ -3,23 +3,32 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Kelas extends Model
 {
-    // Memberitahu Laravel bahwa nama tabel di phpMyAdmin adalah 'kelas'
     protected $table = 'kelas'; 
 
     protected $fillable = ['nama_kelas', 'guru_id'];
 
-    // Relasi ke Siswa
-    public function siswas()
+    /**
+     * Relasi ke Siswa
+     * Satu kelas memiliki banyak siswa
+     */
+    public function siswas(): HasMany
     {
         return $this->hasMany(Siswa::class, 'kelas_id');
     }
 
-    // Relasi ke Guru (Wali Kelas)
-    public function guru() 
+    /**
+     * Relasi ke User (Wali Kelas)
+     * Mengambil data dari tabel users berdasarkan guru_id
+     */
+    // app/Models/Kelas.php
+    public function guru(): BelongsTo
     {
+        // HARUS merujuk ke model Guru, bukan User
         return $this->belongsTo(Guru::class, 'guru_id');
     }
 }

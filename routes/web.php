@@ -52,7 +52,7 @@ Route::middleware('auth')->group(function () {
         abort(403);
     })->name('dashboard');
 
-/*
+   /*
     |--------------------------------------------------------------------------
     | ADMIN AREA
     |--------------------------------------------------------------------------
@@ -73,15 +73,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/guru/{guru}/reset-password', [AdminGuruController::class, 'resetPassword'])->name('guru.reset-password');
         Route::post('/siswa/{siswa}/reset-password', [AdminSiswaController::class, 'resetPassword'])->name('siswa.reset-password');
 
-        // Manajemen Absensi (Monitoring)
-        // PERBAIKAN: Menggunakan Alias GuruAbsensiController
-        Route::get('/absensi/rekap', [GuruAbsensiController::class, 'rekap'])->name('absensi.rekap');
-        Route::resource('absensi', GuruAbsensiController::class)->only(['index', 'show']);
-
-        // Manajemen Absensi (Monitoring) untuk ADMIN
+        // --- MANAJEMEN ABSENSI (MONITORING) ---
+        // Letakkan rute statis (cetak/rekap) di ATAS resource agar tidak dianggap sebagai {id}
         Route::get('/absensi/rekap', [AdminAbsensiController::class, 'rekap'])->name('absensi.rekap');
-        Route::resource('absensi', AdminAbsensiController::class)->only(['index', 'show']);
+        Route::get('/absensi/cetak', [AdminAbsensiController::class, 'cetak'])->name('absensi.cetak');
         
+        // Gunakan ONLY index karena Anda tidak memiliki method 'show' di AdminAbsensiController
+        Route::resource('absensi', AdminAbsensiController::class)->only(['index']);
+
         // --- MANAJEMEN NILAI ---
         Route::controller(NilaiController::class)->prefix('nilai')->name('nilai.')->group(function () {
             Route::get('/', 'index')->name('index');                
