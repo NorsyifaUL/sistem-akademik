@@ -22,14 +22,18 @@
     <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
         <div class="h-1.5 bg-green-600 w-full"></div>
 
-        {{-- 1. HEADER (Tombol Cetak Sudah Dihapus) --}}
+        {{-- 1. HEADER --}}
         <div class="p-8 border-b border-gray-100">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h2 class="text-2xl font-black text-gray-800 uppercase tracking-tighter italic">Rekapitulasi Presensi</h2>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Laporan Kehadiran Siswa — <span class="text-green-600 italic">Mode Guru</span></p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Laporan Kehadiran Siswa — <span class="text-green-600 italic">Mode Pantauan Guru</span></p>
                 </div>
-                {{-- Tombol cetak dihilangkan agar hanya Admin yang bisa mengeksekusi laporan final --}}
+                <div class="flex items-center gap-2">
+                    <span class="bg-slate-100 text-slate-400 text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-slate-200">
+                        <i class="fas fa-lock mr-1"></i> Read Only
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -38,7 +42,7 @@
             <form action="{{ route('guru.absensi.rekap') }}" method="GET" class="flex flex-wrap items-end gap-4">
                 <div class="w-32">
                     <label class="block text-[9px] text-gray-400 uppercase font-black tracking-widest mb-2 ml-1 italic">Mode Cari</label>
-                    <select id="modeSelect" name="mode" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-green-700 outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition-all">
+                    <select id="modeSelect" name="mode" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-green-700 outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition-all cursor-pointer">
                         <option value="daily" {{ request('mode') == 'daily' ? 'selected' : '' }}>Harian</option>
                         <option value="monthly" {{ request('mode') == 'monthly' ? 'selected' : '' }}>Bulanan</option>
                     </select>
@@ -63,10 +67,13 @@
 
                 <div class="w-32">
                     <label class="block text-[9px] text-gray-400 uppercase font-black tracking-widest mb-2 ml-1 italic">Kelas</label>
-                    <select name="kelas" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-gray-700 outline-none focus:ring-2 focus:ring-green-500 shadow-sm">
+                    <select name="kelas" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-gray-700 outline-none focus:ring-2 focus:ring-green-500 shadow-sm cursor-pointer">
                         <option value="">Semua</option>
                         @foreach($kelasList as $k)
-                            <option value="{{ $k->kelas }}" {{ request('kelas') == $k->kelas ? 'selected' : '' }}>{{ $k->kelas }}</option>
+                            {{-- Menggunakan $k->nama_kelas jika sesuai database, atau tetap $k->kelas jika itu kolomnya --}}
+                            <option value="{{ $k->nama_kelas ?? $k->kelas }}" {{ request('kelas') == ($k->nama_kelas ?? $k->kelas) ? 'selected' : '' }}>
+                                {{ $k->nama_kelas ?? $k->kelas }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -94,7 +101,7 @@
                         <th class="px-8 py-5 text-center">Status Absen</th>
                         <th class="px-8 py-5 text-center">Notifikasi WA</th>
                         <th class="px-8 py-5 text-center">Tgl Presensi</th>
-                        <th class="px-8 py-5 text-center">Aksi</th>
+                        {{-- Kolom Aksi sudah dihapus dari sini --}}
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50" id="tableBody">
@@ -109,7 +116,9 @@
                             <td class="px-8 py-6">
                                 <div class="flex flex-col">
                                     <span class="text-sm font-black text-gray-800 uppercase nama-siswa">{{ $r->siswa->nama }}</span>
-                                    <span class="text-[9px] text-gray-400 font-black tracking-widest uppercase italic">NISN: {{ $r->siswa->nisn }} • Kelas {{ $r->siswa->kelas }}</span>
+                                    <span class="text-[9px] text-gray-400 font-black tracking-widest uppercase italic">
+                                        NISN: {{ $r->siswa->nisn }} • Kelas {{ $r->siswa->kelas }}
+                                    </span>
                                 </div>
                             </td>
                             <td class="px-8 py-6 text-center">
@@ -119,10 +128,13 @@
                                         'HADIR', 'H' => 'bg-green-50 text-green-600 border-green-100',
                                         'ALPA', 'A' => 'bg-red-50 text-red-600 border-red-100',
                                         'SAKIT', 'S' => 'bg-yellow-50 text-yellow-600 border-yellow-100',
-                                        default => 'bg-blue-50 text-blue-600 border-blue-100',
+                                        'IZIN', 'I' => 'bg-blue-50 text-blue-600 border-blue-100',
+                                        default => 'bg-gray-50 text-gray-600 border-gray-100',
                                     };
                                 @endphp
-                                <span class="px-3 py-1.5 rounded-full text-[9px] font-black uppercase border {{ $color }}">{{ $st }}</span>
+                                <span class="px-3 py-1.5 rounded-full text-[9px] font-black uppercase border {{ $color }} shadow-sm">
+                                    {{ $st }}
+                                </span>
                             </td>
 
                             <td class="px-8 py-6 text-center">
@@ -134,7 +146,7 @@
                                         @elseif($r->status_wa == 'failed')
                                             <i class="fas fa-exclamation-circle text-red-500 text-[10px]"></i>
                                             <span class="text-[8px] font-black text-red-600 uppercase tracking-tighter mb-1">Gagal</span>
-                                            
+                                            {{-- Resend tetap ada karena ini fungsi teknis, bukan perubahan data --}}
                                             <form action="{{ route('guru.absensi.resend', $r->id) }}" method="POST">
                                                 @csrf
                                                 <button type="submit" class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-tighter hover:bg-red-700 hover:text-white transition-all shadow-sm">
@@ -154,27 +166,15 @@
                             <td class="px-8 py-6 text-center text-[11px] font-black text-gray-500">
                                 {{ \Carbon\Carbon::parse($r->tanggal)->translatedFormat('d/m/Y') }}
                             </td>
-                            <td class="px-8 py-6 text-center">
-                                <div class="flex justify-center gap-2">
-                                    <a href="{{ route('guru.absensi.manage.edit', $r->id) }}" class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
-                                        <i class="fas fa-edit text-[10px]"></i>
-                                    </a>
-                                    <form action="{{ route('guru.absensi.manage.destroy', $r->id) }}" method="POST" onsubmit="return confirm('Hapus data presensi ini?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-sm">
-                                            <i class="fas fa-trash text-[10px]"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
+                            {{-- Kolom <td> Aksi sudah dihapus dari sini --}}
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-8 py-20 text-center text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Tidak ada data untuk periode ini</td>
+                            <td colspan="5" class="px-8 py-20 text-center text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Tidak ada data untuk periode ini</td>
                         </tr>
                     @endforelse
                     <tr id="noResultsRow" style="display: none;">
-                        <td colspan="6" class="px-8 py-20 text-center text-[10px] font-black text-gray-400 uppercase italic">Siswa tidak ditemukan</td>
+                        <td colspan="5" class="px-8 py-20 text-center text-[10px] font-black text-gray-400 uppercase italic">Siswa tidak ditemukan</td>
                     </tr>
                 </tbody>
             </table>
@@ -182,7 +182,6 @@
     </div>
 </div>
 
-{{-- SCRIPT TETAP SAMA --}}
 <script>
     const modeSelect = document.getElementById('modeSelect');
     const dailyWrapper = document.getElementById('dailyInputWrapper');

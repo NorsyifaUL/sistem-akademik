@@ -79,4 +79,10 @@ class Jadwal extends Model
     {
         return $this->hasMany(Nilai::class, 'jadwal_id');
     }
+
+    public function kelasRelasi()
+    {
+        // Mengubungkan foreign key kelas_id di tabel jadwal ke id di tabel kelas
+        return $this->belongsTo(Kelas::class, 'kelas_id');
+    }
 }

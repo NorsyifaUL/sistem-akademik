@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Absensi;
 use App\Models\Kelas;
-use App\Models\Setting; // Pastikan model Setting sudah ada
+use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class AbsensiController extends Controller
 {
+    /**
+     * Menampilkan daftar absensi dengan filter
+     */
     public function index(Request $request)
     {
         // 1. Tangkap parameter filter dari request
@@ -39,7 +42,7 @@ class AbsensiController extends Controller
 
         $absensis = $query->latest()->get();
         
-        // 5. Ambil list kelas untuk dropdown
+        // 5. Ambil list kelas untuk dropdown filter
         $listKelas = Kelas::orderBy('nama_kelas', 'asc')->get(); 
 
         // 6. Kirim semua variabel ke view
@@ -51,6 +54,39 @@ class AbsensiController extends Controller
             'filter_month' => $bulan,
             'filterKelas' => $filterKelas
         ]);
+    }
+
+    /**
+     * Menampilkan form edit presensi (Fitur Khusus Admin)
+     */
+    public function edit(int $id)
+    {
+        $absensi = Absensi::with('siswa')->findOrFail($id);
+        return view('admin.absensi.edit', compact('absensi'));
+    }
+
+    /**
+     * Memproses update data presensi
+     */
+    public function update(Request $request, int $id)
+    {
+        $request->validate([
+            'status' => 'required|in:Hadir,Sakit,Izin,Alpa',
+            'keterangan' => 'nullable|string|max:255'
+        ], [
+            'status.required' => 'Status kehadiran harus dipilih.',
+            'status.in' => 'Status tidak valid.'
+        ]);
+
+        $absensi = Absensi::findOrFail($id);
+        
+        $absensi->update([
+            'status' => $request->status,
+            'keterangan' => $request->keterangan
+        ]);
+
+        return redirect()->route('admin.absensi.index')
+            ->with('success', 'Data presensi ' . $absensi->siswa->nama . ' berhasil dikoreksi.');
     }
 
     /**
@@ -91,13 +127,9 @@ class AbsensiController extends Controller
             'bulan'          => $this->getNamaBulan($bulan),
             'kelas'          => $filterKelas ?? 'Semua Kelas',
             'total'          => $absensis->count(),
-            
-            // Data dinamis disesuaikan dengan kolom di database (image_f363df.jpg)
             'nama_sekolah'   => $settings->nama_sekolah ?? 'NAMA SEKOLAH BELUM DIATUR',
             'alamat'         => $settings->alamat ?? 'Alamat belum diatur di menu settings.',
             'logo'           => $settings->logo ?? null,
-            
-            // Perubahan di sini agar sinkron dengan tabel 'settings' Anda
             'kepala_sekolah' => $settings->nama_kepsek ?? '...........................',
             'nip'            => $settings->nip_kepsek ?? '...........................'
         ];
@@ -111,7 +143,7 @@ class AbsensiController extends Controller
     /**
      * Fungsi pembantu untuk konversi angka bulan ke nama Indonesia
      */
-    private function getNamaBulan($bulan)
+    private function getNamaBulan(int $bulan)
     {
         $bulanStr = str_pad($bulan, 2, '0', STR_PAD_LEFT);
         $daftarBulan = [

@@ -727,4 +727,13 @@ public function rekapNilai(Request $request)
         // Pastikan path view ini sesuai dengan folder yang kamu maksud
         return view('guru.nilai.siswa_list', compact('jadwal', 'siswas', 'setting'));
     }
+
+    public function profil()
+    {
+        // Mengambil data user yang sedang login beserta relasi gurunya
+        $user = auth()->user();
+        $guru = $user->guru; 
+
+        return view('guru.profil', compact('user', 'guru'));
+    }
 }

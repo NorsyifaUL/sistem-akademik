@@ -52,7 +52,7 @@ Route::middleware('auth')->group(function () {
         abort(403);
     })->name('dashboard');
 
-   /*
+    /*
     |--------------------------------------------------------------------------
     | ADMIN AREA
     |--------------------------------------------------------------------------
@@ -62,6 +62,9 @@ Route::middleware('auth')->group(function () {
         // Dashboard
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
+        Route::get('/siswa/profil', [SiswaController::class, 'profil'])->name('siswa.profil');
+
+        
         // Master Data (Resource)
         Route::resource('guru', AdminGuruController::class);
         Route::resource('siswa', AdminSiswaController::class);
@@ -74,11 +77,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/siswa/{siswa}/reset-password', [AdminSiswaController::class, 'resetPassword'])->name('siswa.reset-password');
 
         // --- MANAJEMEN ABSENSI (MONITORING) ---
-        // Letakkan rute statis (cetak/rekap) di ATAS resource agar tidak dianggap sebagai {id}
+        // Letakkan rute statis/spesifik di ATAS agar tidak bentrok dengan {id} pada resource
         Route::get('/absensi/rekap', [AdminAbsensiController::class, 'rekap'])->name('absensi.rekap');
         Route::get('/absensi/cetak', [AdminAbsensiController::class, 'cetak'])->name('absensi.cetak');
         
-        // Gunakan ONLY index karena Anda tidak memiliki method 'show' di AdminAbsensiController
+        /**
+         * PERBAIKAN RUTE EDIT:
+         * Karena sudah di dalam prefix 'admin' dan name 'admin.', 
+         * URL cukup '/absensi/...' dan name cukup 'absensi.edit'.
+         */
+        Route::get('/absensi/{id}/edit', [AdminAbsensiController::class, 'edit'])->name('absensi.edit');
+        Route::put('/absensi/{id}', [AdminAbsensiController::class, 'update'])->name('absensi.update');
+
+        // Resource absensi dibatasi hanya index untuk monitoring daftar utama
         Route::resource('absensi', AdminAbsensiController::class)->only(['index']);
 
         // --- MANAJEMEN NILAI ---
@@ -97,9 +108,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
         Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
         Route::delete('/notifikasi/{id}', [NotifikasiController::class, 'destroy'])->name('notifikasi.destroy');        
-    }); 
-    
-/*
+    });
+    /*
     |--------------------------------------------------------------------------
     | GURU AREA 
     |--------------------------------------------------------------------------
@@ -148,7 +158,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/nilai-sikap/store', [GuruController::class, 'storeSikap'])->name('nilai.sikap.store');
         Route::post('/nilai-eskul/store', [GuruController::class, 'storeEskul'])->name('nilai.eskul.store');
 
-    });   /*
+    });   
+    
+    /*
     |--------------------------------------------------------------------------
     | SISWA AREA
     |--------------------------------------------------------------------------
@@ -159,11 +171,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/nilai', [SiswaController::class,'nilai'])->name('nilai');
         Route::get('/jadwal', [SiswaController::class,'jadwal'])->name('jadwal');
         Route::get('/notifikasi', [SiswaController::class,'notifikasi'])->name('notifikasi.index');
+        
+        // TAMBAHKAN INI: Route Profil khusus Siswa
+        Route::get('/profil', [SiswaController::class, 'profil'])->name('profil');
+        Route::post('/profil/update', [SiswaController::class, 'updateProfil'])->name('profil.update');
     });
 
     /*
     |--------------------------------------------------------------------------
-    | SHARED PROFILE
+    | SHARED PROFILE (Opsional: Tetap biarkan jika dipakai Admin/Guru lain)
     |--------------------------------------------------------------------------
     */
     Route::get('/profile', [ProfileController::class,'edit'])->name('profile.edit');

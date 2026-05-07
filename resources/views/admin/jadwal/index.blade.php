@@ -28,16 +28,17 @@
         <div class="p-5 border-b border-gray-50 bg-gray-50/30">
             <form method="GET" action="{{ route('admin.jadwal.index') }}" class="flex flex-wrap items-center gap-3">
                 
-                {{-- Dropdown Pilih Kelas --}}
+                {{-- Dropdown Pilih Kelas Dinamis --}}
                 <div class="relative flex-1 md:flex-none md:w-64">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                         <i class="fa-solid fa-chalkboard-user text-xs"></i>
                     </span>
-                    <select name="kelas" class="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
+                    <select name="kelas_id" class="w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-600 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
                         <option value="">-- Semua Kelas --</option>
-                        {{-- Sesuaikan daftar kelas ini dengan data di sekolahmu --}}
-                        @foreach(['X 1', 'X 2', 'XI 1', 'XI 2', 'XII IPA', 'XII IPS'] as $kls)
-                            <option value="{{ $kls }}" {{ request('kelas') == $kls ? 'selected' : '' }}>Kelas {{ $kls }}</option>
+                        @foreach($data_kelas as $k)
+                            <option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>
+                                KELAS {{ $k->nama_kelas }}
+                            </option>
                         @endforeach
                     </select>
                     <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400 font-black">
@@ -66,7 +67,7 @@
                     Filter Data
                 </button>
 
-                @if(request('kelas') || request('hari'))
+                @if(request('kelas_id') || request('hari'))
                     <a href="{{ route('admin.jadwal.index') }}" class="bg-rose-50 text-rose-600 border border-rose-100 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all">
                         Reset
                     </a>
@@ -90,18 +91,14 @@
                     @forelse($jadwal as $item)
                     <tr class="hover:bg-blue-50/30 transition-colors group">
                         <td class="px-6 py-4 font-bold text-gray-300 group-hover:text-blue-500 transition-colors">
-                            {{-- Cek jika pagination aktif --}}
-                            @if(method_exists($jadwal, 'currentPage'))
-                                {{ ($jadwal->currentPage() - 1) * $jadwal->perPage() + $loop->iteration }}
-                            @else
-                                {{ $loop->iteration }}
-                            @endif
+                            {{ ($jadwal->currentPage() - 1) * $jadwal->perPage() + $loop->iteration }}
                         </td>
                         <td class="px-6 py-4">
                             <span class="block font-black text-gray-700 uppercase tracking-tight">{{ $item->hari }}</span>
                             <span class="inline-flex items-center gap-1.5 text-[11px] font-black text-blue-600 mt-1">
                                 <i class="fa-regular fa-clock text-[10px]"></i>
-                                {{ \Carbon\Carbon::parse($item->jam_mulai)->format('H:i') }} - {{ \Carbon\Carbon::parse($item->jam_selesai)->format('H:i') }}
+                                {{-- Menggunakan Accessor dari Model Jadwal --}}
+                                {{ $item->jam_mulai }} - {{ $item->jam_selesai }}
                             </span>
                         </td>
                         <td class="px-6 py-4 text-xs font-bold">
@@ -114,7 +111,8 @@
                         </td>
                         <td class="px-6 py-4 text-center">
                             <span class="bg-gray-800 text-white px-3 py-1 rounded-full font-black text-[10px] uppercase tracking-widest shadow-sm">
-                                {{ $item->kelas }}
+                                {{-- LOGIKA PERBAIKAN: Cek relasi dataKelas dulu, jika null ambil kolom teks 'kelas' --}}
+                                {{ $item->dataKelas->nama_kelas ?? $item->kelas ?? 'N/A' }}
                             </span>
                         </td>
                         <td class="px-6 py-4">

@@ -104,7 +104,7 @@
                 @if($sudah_absen->count() > 0)
                     {{-- JIKA SUDAH ABSEN --}}
                     <div class="flex items-center gap-4">
-                        <span class="text-[9px] font-bold text-orange-600 italic uppercase mr-2">Cek menu rekap untuk edit data</span>
+                        <span class="text-[9px] font-bold text-orange-600 italic uppercase mr-2"></span>
                         <a href="{{ route('guru.absensi.index') }}" class="bg-gray-900 hover:bg-black text-white px-10 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg transition-all">
                             &larr; Kembali ke Jadwal
                         </a>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Jadwal;
 use App\Models\Guru;
 use App\Models\Mapel;
+use App\Models\Kelas;
 use Illuminate\Http\Request;
 
 class JadwalController extends Controller
@@ -13,23 +14,27 @@ class JadwalController extends Controller
     // =========================
     // INDEX + SEARCH
     // =========================
-   public function index(Request $request)
-{
-    $query = Jadwal::with(['guru', 'mapel']);
+    public function index(Request $request)
+    {
+        // Mengambil data jadwal beserta relasinya agar query lebih efisien
+        $query = Jadwal::with(['guru', 'mapel', 'kelasRelasi']);
 
-    if ($request->filled('kelas')) {
-        $query->where('kelas', 'like', '%' . $request->kelas . '%');
+        // Filter berdasarkan kelas_id (sesuai database)
+        if ($request->filled('kelas_id')) {
+            $query->where('kelas_id', $request->kelas_id);
+        }
+
+        if ($request->filled('hari')) {
+            $query->where('hari', $request->hari);
+        }
+
+        $jadwal = $query->paginate(10);
+        
+        // Ambil semua data kelas untuk isi dropdown filter
+        $data_kelas = Kelas::all(); 
+
+        return view('admin.jadwal.index', compact('jadwal', 'data_kelas'));
     }
-
-    if ($request->filled('hari')) {
-        $query->where('hari', $request->hari);
-    }
-
-    // UBAH INI: dari ->get() menjadi ->paginate(10)
-    $jadwal = $query->paginate(10); 
-
-    return view('admin.jadwal.index', compact('jadwal'));
-}
 
     // =========================
     // CREATE

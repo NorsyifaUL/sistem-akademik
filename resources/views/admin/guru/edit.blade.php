@@ -5,10 +5,10 @@
     {{-- Header --}}
     <div class="mb-2">
         <h1 class="text-2xl font-black text-gray-800 tracking-tight uppercase">Edit Data Guru</h1>
-        <p class="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">Perbarui profil dan otoritas wali kelas SMAN 1 Jejangkit</p>
+        <p class="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">Sistem Informasi Akademik <span class="text-blue-600">Sman 1 Jejangkit</span></p>
     </div>
 
-    {{-- Main Card dengan Garis Biru --}}
+    {{-- Main Card dengan Garis Biru Tipis di Atas --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden border-t-4 border-t-blue-600">
         <div class="p-5 border-b border-gray-50 bg-gray-50/30">
             <h3 class="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
@@ -30,48 +30,16 @@
 
                 {{-- NIP --}}
                 <div>
-                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">NIP</label>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">NIP / NUPTK</label>
                     <input type="text" name="nip" value="{{ old('nip', $guru->nip) }}"
                            class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold transition-all outline-none" required>
                 </div>
 
                 {{-- Email --}}
                 <div class="md:col-span-2">
-                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Email Akun</label>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Email Akun (Login)</label>
                     <input type="email" name="email" value="{{ old('email', $guru->user->email) }}"
                            class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold transition-all outline-none" required>
-                </div>
-            </div>
-
-            {{-- Otoritas Wali Kelas Box --}}
-            <div class="p-6 bg-blue-50/50 rounded-2xl border border-blue-100 border-dashed space-y-4">
-                <h4 class="text-xs font-black text-blue-800 uppercase tracking-widest flex items-center gap-2">
-                    <i class="fa-solid fa-shield-halved"></i>
-                    Otoritas Wali Kelas
-                </h4>
-
-                <div class="flex flex-col md:flex-row md:items-center gap-6">
-                    <div class="flex items-center">
-                        <div class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="is_wali_kelas" id="is_wali_kelas" value="1" 
-                                   {{ old('is_wali_kelas', $guru->user->is_wali_kelas) ? 'checked' : '' }}
-                                   class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer transition-all">
-                            <label for="is_wali_kelas" class="ml-3 text-sm font-bold text-gray-700 cursor-pointer">
-                                Aktifkan sebagai Wali Kelas
-                            </label>
-                        </div>
-                    </div>
-
-                    <div id="kelas_container" class="{{ old('is_wali_kelas', $guru->user->is_wali_kelas) ? '' : 'hidden' }} flex-1 animate-fade-in">
-                        <select name="wali_kelas" class="w-full px-4 py-2.5 rounded-xl border-gray-200 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold shadow-sm transition-all outline-none">
-                            <option value="">-- Pilih Kelas Tanggung Jawab --</option>
-                            @foreach(['X 1', 'X 2', 'XI 1', 'XI 2', 'XII IPA', 'XII IPS'] as $kls)
-                                <option value="{{ $kls }}" {{ old('wali_kelas', $guru->user->wali_kelas) == $kls ? 'selected' : '' }}>
-                                    Kelas {{ $kls }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
                 </div>
             </div>
 
@@ -92,19 +60,6 @@
         </form>
     </div>
 </div>
-
-<script>
-    const checkWali = document.getElementById('is_wali_kelas');
-    const containerKelas = document.getElementById('kelas_container');
-
-    checkWali.addEventListener('change', function() {
-        if (this.checked) {
-            containerKelas.classList.remove('hidden');
-        } else {
-            containerKelas.classList.add('hidden');
-        }
-    });
-</script>
 
 <style>
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }

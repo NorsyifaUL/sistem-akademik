@@ -53,13 +53,24 @@
                         <input type="hidden" name="jenis" value="sikap">
 
                         {{-- Aspek --}}
-                        <div>
-                            <label class="block text-xs font-bold text-emerald-900 mb-2">Aspek Penilaian</label>
-                            <select name="aspek" id="aspekSelect" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs font-medium focus:ring-1 focus:ring-emerald-600 focus:bg-white outline-none transition-all" onchange="generateDescription()" required>
-                                <option value="">-- Pilih Aspek --</option>
-                                <option value="Sikap Spiritual">Sikap Spiritual</option>
-                                <option value="Sikap Sosial">Sikap Sosial</option>
-                            </select>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-emerald-900 mb-2">Kategori Sikap (Aspek)</label>
+                                <select name="aspek" id="aspekSelect" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs font-medium focus:ring-1 focus:ring-emerald-600 focus:bg-white outline-none transition-all" required onchange="handleAspekChange()">
+                                    <option value="">-- Pilih Aspek --</option>
+                                    <option value="Keagamaan">Keagamaan</option>
+                                    <option value="Kesopanan">Kesopanan</option>
+                                    <option value="Lainnya">Lainnya...</option>
+                                </select>
+                            </div>
+
+                            {{-- Input Manual (Muncul jika "Lainnya" dipilih) --}}
+                            <div id="inputManualWrapper" class="hidden animate-fade-in">
+                                <label class="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 italic">Input Aspek Lainnya</label>
+                                <input type="text" id="aspekCustom" name="aspek_custom" 
+                                    placeholder="Contoh: Kedisiplinan / Kejujuran"
+                                    class="w-full px-3 py-2 bg-white border-2 border-emerald-500 rounded text-xs font-bold text-emerald-900 outline-none shadow-sm focus:ring-0">
+                            </div>
                         </div>
 
                         {{-- Predikat --}}
@@ -80,10 +91,10 @@
                         {{-- Deskripsi --}}
                         <div>
                             <label class="block text-xs font-bold text-emerald-900 mb-2">Deskripsi Capaian</label>
-                            <textarea id="keterangan" name="keterangan" rows="8" 
+                            <textarea id="keterangan" name="keterangan" rows="6" 
                                 class="w-full px-4 py-3 bg-white border border-slate-200 rounded text-xs font-medium text-slate-600 leading-relaxed focus:ring-1 focus:ring-emerald-600 outline-none resize-none transition-all" 
-                                placeholder="Pilih aspek & nilai untuk memunculkan draft deskripsi..." required></textarea>
-                            <p class="mt-2 text-[10px] text-emerald-600 italic font-medium text-center">* Deskripsi otomatis dapat diedit kembali.</p>
+                                placeholder="Pilih aspek & nilai untuk draft..." required></textarea>
+                            <p class="mt-2 text-[10px] text-emerald-600 italic font-medium text-center">* Deskripsi dapat diedit kembali.</p>
                         </div>
 
                         <button type="submit" class="w-full bg-emerald-800 text-white py-3 rounded font-bold text-xs uppercase tracking-widest hover:bg-emerald-900 transition-all shadow-md active:scale-95">
@@ -117,8 +128,8 @@
                             <tr class="hover:bg-emerald-50/30 transition-colors">
                                 <td class="py-4 px-6 text-center text-xs font-semibold text-emerald-800/30">{{ $index + 1 }}</td>
                                 <td class="py-4 px-4">
-                                    <span class="text-[10px] font-bold px-3 py-1 rounded-full {{ $n->aspek == 'Sikap Spiritual' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-teal-100 text-teal-700 border border-teal-200' }}">
-                                        {{ strtoupper($n->aspek) }}
+                                    <span class="text-[9px] font-black px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-tighter">
+                                        {{ $n->aspek }}
                                     </span>
                                 </td>
                                 <td class="py-4 px-4 text-center">
@@ -130,9 +141,9 @@
                                     "{{ $n->keterangan }}"
                                 </td>
                                 <td class="py-4 px-6 text-center">
-                                    <form action="{{ route('guru.nilai.destroy', $n->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus penilaian ini?')">
+                                    <form action="{{ route('guru.nilai.destroy', $n->id) }}" method="POST" onsubmit="return confirm('Hapus penilaian ini?')">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center mx-auto shadow-sm">
+                                        <button type="submit" class="w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center mx-auto">
                                             <i class="fas fa-trash-alt text-[10px]"></i>
                                         </button>
                                     </form>
@@ -141,7 +152,7 @@
                             @empty
                             <tr>
                                 <td colspan="5" class="py-20 text-center text-emerald-200 text-[10px] font-bold uppercase tracking-[0.2em] italic">
-                                    <i class="fas fa-folder-open mb-2 block text-xl opacity-20"></i> Belum ada data terekam
+                                    Belum ada data terekam
                                 </td>
                             </tr>
                             @endforelse
@@ -154,44 +165,68 @@
 </div>
 
 <script>
-    function generateDescription() {
-        const aspekSelect = document.getElementById('aspekSelect');
-        const predikatRadio = document.querySelector('input[name="nilai"]:checked');
-        const textarea = document.getElementById('keterangan');
+    const aspekSelect = document.getElementById('aspekSelect');
+    const inputManualWrapper = document.getElementById('inputManualWrapper');
+    const aspekCustom = document.getElementById('aspekCustom');
+    const textarea = document.getElementById('keterangan');
 
-        if (aspekSelect.value && predikatRadio) {
-            const aspek = aspekSelect.value;
+    function handleAspekChange() {
+        if (aspekSelect.value === 'Lainnya') {
+            inputManualWrapper.classList.remove('hidden');
+            aspekCustom.setAttribute('required', 'required');
+            aspekCustom.focus();
+        } else {
+            inputManualWrapper.classList.add('hidden');
+            aspekCustom.removeAttribute('required');
+            aspekCustom.value = '';
+        }
+        generateDescription();
+    }
+
+    function generateDescription() {
+        const predikatRadio = document.querySelector('input[name="nilai"]:checked');
+        let aspek = aspekSelect.value;
+
+        if (aspek === 'Lainnya') {
+            aspek = 'Umum';
+        }
+
+        if (aspek && predikatRadio) {
             const predikat = predikatRadio.value;
 
             const dataKalimat = {
-                'Sikap Spiritual': {
-                    'A': "Sangat taat dalam beribadah, selalu menunjukkan rasa syukur, aktif dalam kegiatan keagamaan di sekolah, dan menjadi teladan bagi siswa lain dalam menghargai perbedaan agama.",
-                    'B': "Menunjukkan sikap taat beribadah dan rasa syukur dengan baik. Sudah konsisten dalam berdoa sebelum dan sesudah melakukan aktivitas rutin.",
-                    'C': "Mulai menunjukkan ketaatan dalam beribadah, namun masih memerlukan pengingat rutin untuk konsisten dalam menjalankan ibadah harian.",
-                    'D': "Memerlukan bimbingan intensif dalam meningkatkan ketaatan beribadah serta kesadaran untuk menunjukkan rasa syukur dalam lingkungan sekolah."
+                'Keagamaan': {
+                    'A': "Sangat taat dalam beribadah, menunjukkan sikap syukur yang luar biasa, dan konsisten menjaga kerukunan antar umat beragama.",
+                    'B': "Taat dalam beribadah dan menunjukkan sikap syukur dengan baik di lingkungan sekolah.",
+                    'C': "Mulai menunjukkan ketaatan beribadah namun terkadang masih perlu diingatkan oleh guru.",
+                    'D': "Perlu bimbingan intensif dalam meningkatkan kesadaran beribadah dan rasa syukur."
                 },
-                'Sikap Sosial': {
-                    'A': "Memiliki kejujuran, disiplin, dan tanggung jawab yang sangat tinggi dalam tugas. Sangat santun dalam bertutur kata serta memiliki inisiatif tinggi dalam membantu teman.",
-                    'B': "Menunjukkan sikap jujur, disiplin, dan santun dengan baik. Sudah mampu bekerja sama secara aktif dalam kelompok dan menyelesaikan tugas tepat waktu.",
-                    'C': "Menunjukkan sikap cukup disiplin dan jujur, namun perlu ditingkatkan lagi dalam aspek tanggung jawab tugas kelompok serta kesantunan berkomunikasi.",
-                    'D': "Memerlukan pengawasan rutin untuk bersikap disiplin dan jujur, serta perlu bimbingan dalam membangun komunikasi yang santun dengan warga sekolah."
+                'Kesopanan': {
+                    'A': "Sangat santun dalam bertutur kata dan bersikap baik kepada guru maupun teman sejawat tanpa terkecuali.",
+                    'B': "Menunjukkan sikap sopan dan santun yang baik dalam berkomunikasi di lingkungan sekolah.",
+                    'C': "Cukup sopan, namun perlu ditingkatkan lagi dalam cara berkomunikasi dengan orang yang lebih tua.",
+                    'D': "Perlu pembinaan khusus dalam etika berbicara dan bersikap sopan kepada warga sekolah."
+                },
+                'Umum': {
+                    'A': "Menunjukkan kualitas karakter yang sangat unggul dan melampaui standar yang ditetapkan.",
+                    'B': "Menunjukkan karakter yang baik dan konsisten sesuai dengan standar sekolah.",
+                    'C': "Karakter sudah mulai berkembang namun masih memerlukan motivasi tambahan.",
+                    'D': "Karakter memerlukan bimbingan dan perhatian khusus dari guru BK dan wali kelas."
                 }
             };
 
-            if (dataKalimat[aspek] && dataKalimat[aspek][predikat]) {
-                textarea.value = dataKalimat[aspek][predikat];
-            }
+            const kategori = dataKalimat[aspek] ? aspek : 'Umum';
+            textarea.value = dataKalimat[kategori][predikat];
         }
     }
 </script>
 
 <style>
     .font-sans { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-    
     @keyframes fade-in {
-        from { opacity: 0; transform: translateY(-5px); }
+        from { opacity: 0; transform: translateY(-10px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    .animate-fade-in { animation: fade-in 0.3s ease-out forwards; }
+    .animate-fade-in { animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 </style>
 @endsection

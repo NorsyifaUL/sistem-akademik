@@ -189,4 +189,12 @@ public function nilai(Request $request)
 
         return view('siswa.absensi', compact('absensi', 'semuaAbsensi'));
     }
+
+    public function profil()
+    {
+        $user = auth()->user();
+        $siswa = $user->siswa; // Mengambil relasi data siswa
+
+        return view('siswa.profil', compact('user', 'siswa'));
+    }
 }

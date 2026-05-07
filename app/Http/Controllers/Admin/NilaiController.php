@@ -8,51 +8,36 @@ use App\Models\Nilai;
 use App\Models\Siswa;
 use App\Models\Mapel;
 use App\Models\Jadwal;
+use App\Models\Kelas;
 use App\Models\Setting; 
-use Barryvdh\DomPDF\Facade\Pdf; // Facade yang benar
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class NilaiController extends Controller
 {
     /**
      * HALAMAN UTAMA REKAP NILAI (DASHBOARD)
+     * Menampilkan daftar siswa per kelas beserta rata-rata nilainya.
      */
     public function index(Request $request)
     {
         $kelasTerpilih = $request->get('kelas');
+        
+        // Ambil data kelas dari tabel Kelas (untuk dropdown filter)
+        $data_kelas = Kelas::orderBy('nama_kelas', 'asc')->pluck('nama_kelas');
+
         $siswas = [];
 
         if ($kelasTerpilih) {
-            $siswas = Siswa::where('kelas', $kelasTerpilih)
-                            ->orderBy('nama', 'asc')
-                            ->get();
-            
-            foreach ($siswas as $siswa) {
-                $totalNilai = 0;
-                $jumlahMapel = 0;
-                
-                $nilais = Nilai::where('siswa_id', $siswa->id)->get();
-                $grouped = $nilais->groupBy('jadwal_id');
-                
-                foreach($grouped as $g) {
-                    $harian = $g->whereIn('jenis', ['harian', 'ulangan_bab'])->avg('nilai') ?? 0;
-                    $uts = $g->where('jenis', 'uts')->first()->nilai ?? 0;
-                    $uas = $g->where('jenis', 'uas')->first()->nilai ?? 0;
-                    $akhir = ($harian + $uts + $uas) / 3;
-                    
-                    if($akhir > 0) {
-                        $totalNilai += $akhir;
-                        $jumlahMapel++;
-                    }
-                }
-                $siswa->rata_rata_akhir = $jumlahMapel > 0 ? $totalNilai / $jumlahMapel : 0;
-            }
+            // Mengambil data siswa yang sudah dihitung rata-ratanya secara dinamis
+            $mapels = Mapel::all();
+            $siswas = $this->getDataRekap($kelasTerpilih, $mapels);
         }
 
-        return view('admin.nilai.index', compact('siswas', 'kelasTerpilih'));
+        return view('admin.nilai.index', compact('siswas', 'kelasTerpilih', 'data_kelas'));
     }
 
     /**
-     * PRINT REKAP NILAI SATU KELAS (TABEL BESAR/LEGGER)
+     * PRINT REKAP NILAI SATU KELAS (LEGGER)
      */
     public function print(Request $request)
     {
@@ -63,206 +48,100 @@ class NilaiController extends Controller
             return redirect()->back()->with('error', 'Pilih kelas terlebih dahulu');
         }
 
+        // Mengambil data siswa melalui fungsi rekap agar ranking/rata-rata akurat
         $siswas = $this->getDataRekap($kelasTerpilih, $mapels);
 
         return view('admin.nilai_print', compact('mapels', 'siswas', 'kelasTerpilih'));
     }
 
     /**
-     * FUNGSI CETAK RAPORT INDIVIDU (OUTPUT PDF PORTRAIT)
+     * FUNGSI CETAK RAPORT INDIVIDU
      */
-public function cetakRaport($id)
-{
-    $siswa = Siswa::findOrFail($id);
-    $setting = Setting::first();
+    public function cetakRaport(int $id)
+    {
+        $siswa = Siswa::findOrFail($id);
+        $setting = Setting::first();
 
-    $semester_aktif = $setting->semester ?? '1'; 
-    $tahun_ajar_aktif = $setting->tahun_ajaran ?? '2025/2026';
+        // Nama variabel yang didefinisikan:
+        $semester_aktif = $setting->semester ?? '1'; 
+        $tahun_ajar_aktif = $setting->tahun_ajaran ?? '2025/2026';
 
-    $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
-    $dataRaport = []; 
+        $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
+        $dataRaport = []; 
 
-    foreach ($mapels as $mapel) {
-        $jadwal = Jadwal::where('mapel_id', $mapel->id)
-                        ->where('kelas', $siswa->kelas)
-                        ->first();
+        foreach ($mapels as $mapel) {
+            $jadwal = Jadwal::where('mapel_id', $mapel->id)
+                            ->where('kelas', $siswa->kelas)
+                            ->first();
 
-        $akhir = 0;
-        $narasi = '-';
+            $akhir = 0;
+            $narasi = '-';
 
-        if ($jadwal) {
-            // Kita gunakan where standar. 
-            // PENTING: Jika masih kosong, hapus filter semester & tahun_ajaran untuk tes.
-            $nilaiData = Nilai::where('siswa_id', $siswa->id)
-                                ->where('jadwal_id', $jadwal->id)
-                                ->where('semester', $semester_aktif)
-                                ->where('tahun_ajaran', $tahun_ajar_aktif)
-                                ->get();
+            if ($jadwal) {
+                $nilaiData = Nilai::where('siswa_id', $siswa->id)
+                                    ->where('jadwal_id', $jadwal->id)
+                                    ->where('semester', $semester_aktif)
+                                    ->where('tahun_ajaran', $tahun_ajar_aktif)
+                                    ->get();
 
-            $harian = $nilaiData->whereIn('jenis', ['harian', 'ulangan_bab'])->avg('nilai') ?? 0;
-            $uts    = $nilaiData->where('jenis', 'uts')->first()->nilai ?? 0;
-            $uas    = $nilaiData->where('jenis', 'uas')->first()->nilai ?? 0;
+                $harian = $nilaiData->whereIn('jenis', ['harian', 'ulangan_bab'])->avg('nilai') ?? 0;
+                $uts    = $nilaiData->where('jenis', 'uts')->first()->nilai ?? 0;
+                $uas    = $nilaiData->where('jenis', 'uas')->first()->nilai ?? 0;
 
-            if ($harian > 0 || $uts > 0 || $uas > 0) {
-                $akhir = ($harian + $uts + $uas) / 3;
-                
-                if ($akhir >= 85) { $narasi = "Sangat Baik dalam " . $mapel->nama_mapel; }
-                elseif ($akhir >= 75) { $narasi = "Baik dalam " . $mapel->nama_mapel; }
-                else { $narasi = "Perlu bimbingan dalam " . $mapel->nama_mapel; }
+                if ($harian > 0 || $uts > 0 || $uas > 0) {
+                    $akhir = ($harian + $uts + $uas) / 3;
+                    
+                    if ($akhir >= 85) { $narasi = "Sangat Baik dalam memahami materi " . $mapel->nama_mapel; }
+                    elseif ($akhir >= 75) { $narasi = "Baik dalam memahami materi " . $mapel->nama_mapel; }
+                    else { $narasi = "Perlu bimbingan lebih lanjut dalam materi " . $mapel->nama_mapel; }
+                }
             }
+
+            $dataRaport[] = [
+                'mapel' => $mapel->nama_mapel,
+                'akhir' => round($akhir),
+                'capaian_kompetensi' => $narasi 
+            ];
         }
 
-        $dataRaport[] = [
-            'mapel' => $mapel->nama_mapel,
-            'akhir' => round($akhir),
-            'capaian_kompetensi' => $narasi 
-        ];
+        $ekskul_data = Nilai::where('siswa_id', $siswa->id)
+                        ->where('jenis', 'eskul')
+                        ->where('semester', $semester_aktif)
+                        ->get();
+
+        $wali = Jadwal::with('guru')->where('kelas', $siswa->kelas)->first();
+        $nama_wali = $wali->guru->nama ?? '................';
+        $nip_wali = $wali->guru->nip ?? '................';
+
+        // Load View PDF
+        $pdf = Pdf::loadView('guru.raport_pdf', [
+            'siswa'         => $siswa,
+            'dataRaport'    => $dataRaport,
+            'eskul'         => $ekskul_data, // DISESUAIKAN: Menjadi 'eskul' agar cocok dengan Blade
+            'setting'       => $setting, 
+            'semester'      => $semester_aktif,    
+            'tahun_ajaran'  => $tahun_ajar_aktif, 
+            'nama_kepsek'   => $setting->nama_kepsek ?? '................',
+            'nip_kepsek'    => $setting->nip_kepsek ?? '................',
+            'nama_wali'     => $nama_wali,
+            'nip'           => $nip_wali,
+            'absensi'       => ['sakit' => 0, 'izin' => 0, 'alfa' => 0],
+            'catatan_wali'  => "Pertahankan prestasimu dan teruslah belajar dengan giat.",
+            'tgl_cetak'     => date('d F Y'),
+        ]);
+
+        return $pdf->setPaper('a4', 'portrait')->stream('Raport_'.$siswa->nama.'.pdf');
     }
-
-    // Ambil Ekskul - Pastikan jenisnya 'eskul' (huruf kecil semua)
-    $ekskul = Nilai::where('siswa_id', $siswa->id)
-                    ->where('jenis', 'eskul')
-                    ->where('semester', $semester_aktif)
-                    ->get();
-
-    // Mapping Wali Kelas
-    $wali = Jadwal::with('guru')->where('kelas', $siswa->kelas)->first();
-    $nama_wali = $wali->guru->nama ?? '................';
-    $nip_wali = $wali->guru->nip ?? '................';
-
-    $pdf = Pdf::loadView('guru.raport_pdf', [
-        'siswa'         => $siswa,
-        'dataRaport'    => $dataRaport,
-        'ekskul'        => $ekskul, 
-        'semester'      => $semester_aktif,    
-        'tahun_ajaran'  => $tahun_ajar_aktif,  
-        'nama_kepsek'   => $setting->nama_kepsek ?? '................',
-        'nip_kepsek'    => $setting->nip_kepsek ?? '................',
-        'nama_wali'     => $nama_wali,
-        'nip'           => $nip_wali,
-        'absensi'       => ['sakit' => 0, 'izin' => 0, 'alfa' => 0],
-        'catatan_wali'  => "Terus pertahankan prestasimu.",
-        'tgl_cetak'     => date('d m Y'),
-    ]);
-
-    return $pdf->setPaper('a4', 'portrait')->stream('Raport.pdf');
-}
 
     /**
-     * INPUT NILAI AKADEMIK (MAPEL)
+     * FUNGSI PRIVATE: Menghitung rekap nilai untuk efisiensi kode (DRY)
      */
-    public function create($jadwal_id)
-    {
-        $jadwal = Jadwal::with('mapel')->findOrFail($jadwal_id);
-        $siswas = Siswa::where('kelas', $jadwal->kelas)->orderBy('nama', 'asc')->get();
-
-        return view('admin.nilai_input', compact('jadwal', 'siswas'));
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'jadwal_id' => 'required',
-            'jenis' => 'required',
-            'nilai' => 'required|array',
-        ]);
-
-        $setting = Setting::first();
-        $tahun = $setting->tahun_ajaran ?? '2025/2026';
-        $semester = $setting->semester ?? '1';
-
-        foreach ($request->nilai as $siswa_id => $skor) {
-            if ($skor !== null) {
-                Nilai::updateOrCreate(
-                    [
-                        'siswa_id' => $siswa_id,
-                        'jadwal_id' => $request->jadwal_id,
-                        'jenis' => $request->jenis,
-                    ],
-                    [
-                        'aspek' => $request->aspek,
-                        'nilai' => $skor,
-                        'semester' => $semester,
-                        'tahun_ajaran' => $tahun,
-                    ]
-                );
-            }
-        }
-
-        return redirect()->route('admin.nilai')->with('success', 'Nilai akademik berhasil disimpan!');
-    }
-
-    public function createSikap($siswa_id)
-    {
-        $siswa = Siswa::findOrFail($siswa_id);
-        $nilaiSikap = Nilai::where('siswa_id', $siswa_id)->where('jenis', 'sikap')->get();
-        return view('admin.nilai_sikap_input', compact('siswa', 'nilaiSikap'));
-    }
-
-    public function storeSikap(Request $request)
-    {
-        $request->validate([
-            'siswa_id' => 'required',
-            'aspek' => 'required',
-            'predikat' => 'required',
-        ]);
-
-        $setting = Setting::first();
-
-        Nilai::updateOrCreate(
-            [
-                'siswa_id' => $request->siswa_id,
-                'jenis' => 'sikap',
-                'aspek' => $request->aspek,
-            ],
-            [
-                'predikat' => $request->predikat,
-                'keterangan' => $request->keterangan,
-                'semester' => $setting->semester ?? '1',
-                'tahun_ajaran' => $setting->tahun_ajaran ?? '2025/2026'
-            ]
-        );
-
-        return redirect()->back()->with('success', 'Nilai Sikap berhasil disimpan!');
-    }
-
-    public function createEskul($siswa_id)
-    {
-        $siswa = Siswa::findOrFail($siswa_id);
-        $nilaiEskul = Nilai::where('siswa_id', $siswa_id)->where('jenis', 'eskul')->get();
-        return view('admin.nilai_eskul_input', compact('siswa', 'nilaiEskul'));
-    }
-
-    public function storeEskul(Request $request)
-    {
-        $request->validate([
-            'siswa_id' => 'required',
-            'nama_ekskul' => 'required',
-            'predikat' => 'required',
-        ]);
-
-        $setting = Setting::first();
-
-        Nilai::updateOrCreate(
-            [
-                'siswa_id' => $request->siswa_id,
-                'jenis' => 'eskul',
-                'aspek' => $request->nama_ekskul,
-            ],
-            [
-                'predikat' => $request->predikat,
-                'keterangan' => $request->keterangan,
-                'semester' => $setting->semester ?? '1',
-                'tahun_ajaran' => $setting->tahun_ajaran ?? '2025/2026',
-            ]
-        );
-
-        return redirect()->back()->with('success', 'Nilai Eskul berhasil disimpan!');
-    }
-
-    private function getDataRekap($kelasTerpilih, $mapels)
+    private function getDataRekap(string $kelasTerpilih, $mapels)
     {
         $siswas = Siswa::where('kelas', $kelasTerpilih)->orderBy('nama', 'asc')->get();
+        $setting = Setting::first();
+        $sem = $setting->semester ?? '1';
+        $thn = $setting->tahun_ajaran ?? '2025/2026';
 
         foreach ($siswas as $siswa) {
             $totalNilaiSeluruhMapel = 0;
@@ -277,6 +156,8 @@ public function cetakRaport($id)
                 if ($jadwal) {
                     $nilaiData = Nilai::where('siswa_id', $siswa->id)
                                       ->where('jadwal_id', $jadwal->id)
+                                      ->where('semester', $sem)
+                                      ->where('tahun_ajaran', $thn)
                                       ->get();
 
                     $harian = $nilaiData->whereIn('jenis', ['harian', 'ulangan_bab'])->avg('nilai') ?? 0;
@@ -301,10 +182,14 @@ public function cetakRaport($id)
         return $siswas->sortByDesc('rata_rata_akhir')->values();
     }
 
-    public function show($id)
+    /**
+     * DETAIL NILAI SISWA (SHOW)
+     */
+    public function show(int $id)
     {
         $siswa = Siswa::findOrFail($id);
         $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
+        $setting = Setting::first();
         
         $details = [];
         $totalAkhir = 0;
@@ -318,6 +203,7 @@ public function cetakRaport($id)
             if ($jadwal) {
                 $nilaiData = Nilai::where('siswa_id', $id)
                                 ->where('jadwal_id', $jadwal->id)
+                                ->where('semester', $setting->semester ?? '1')
                                 ->get();
 
                 $tugas = $nilaiData->whereIn('jenis', ['harian', 'ulangan_bab'])->avg('nilai') ?? 0;

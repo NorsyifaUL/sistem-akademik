@@ -26,12 +26,14 @@
                     </div>
                 </div>
 
-                {{-- Pilih Wali Kelas (Mengambil dari tabel gurus) --}}
+                {{-- Pilih Wali Kelas (Dibuat Optional/Boleh Kosong) --}}
                 <div class="space-y-2">
-                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Wali Kelas</label>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Wali Kelas (Opsional)</label>
                     <div class="relative group">
-                        <select name="guru_id" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold shadow-sm transition-all outline-none appearance-none cursor-pointer text-gray-700 bg-gray-50/30" required>
-                            <option value="" disabled selected>-- Pilih Wali Kelas --</option>
+                        {{-- Atribut 'required' dihapus agar wali kelas tidak wajib dipilih --}}
+                        <select name="guru_id" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-bold shadow-sm transition-all outline-none appearance-none cursor-pointer text-gray-700 bg-gray-50/30">
+                            {{-- Value dikosongkan agar mengirim NULL ke database --}}
+                            <option value="">-- Belum Ada Wali Kelas --</option>
                             @foreach($gurus as $guru)
                                 <option value="{{ $guru->id }}" {{ old('guru_id') == $guru->id ? 'selected' : '' }}>
                                     {{ $guru->nama }}
@@ -46,10 +48,10 @@
             {{-- Info Tip --}}
             <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <i class="fa-solid fa-lightbulb text-white text-xs"></i>
+                    <i class="fa-solid fa-circle-info text-white text-xs"></i>
                 </div>
                 <p class="text-[11px] text-blue-700 font-bold leading-tight uppercase tracking-wider">
-                    Pastikan nama kelas unik dan wali kelas sudah sesuai dengan data di tabel guru.
+                    Nama kelas wajib diisi, sedangkan wali kelas dapat dikosongkan dan diatur kemudian hari melalui menu edit.
                 </p>
             </div>
 

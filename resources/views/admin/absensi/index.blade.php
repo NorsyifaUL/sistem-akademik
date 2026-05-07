@@ -23,7 +23,7 @@
     {{-- Main Container Card --}}
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden border-t-4 border-t-blue-600">
         
-        {{-- Filter Section - Terkunci Satu Baris --}}
+        {{-- Filter Section --}}
         <div class="p-6 border-b border-gray-50 bg-gray-50/30">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 {{-- Label Parameter --}}
@@ -46,7 +46,7 @@
                             </select>
                         </div>
 
-                        {{-- Filter Dinamis: Tanggal atau Dropdown Bulan --}}
+                        {{-- Filter Dinamis --}}
                         <div class="flex flex-col gap-1.5">
                             <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">
                                 {{ request('mode') == 'bulanan' ? 'Pilih Bulan' : 'Pilih Tanggal' }}
@@ -105,7 +105,7 @@
                 <div class="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
                 <span class="text-[10px] font-black text-slate-700 uppercase tracking-widest">
                     @if(request('mode') == 'bulanan')
-                        Rekap Bulanan: {{ $months[request('filter_month', date('m'))] }}
+                        Rekap Bulanan: {{ $months[request('filter_month', date('m'))] ?? 'N/A' }}
                     @else
                         Presensi Harian: {{ \Carbon\Carbon::parse(request('filter_date', date('Y-m-d')))->format('d F Y') }}
                     @endif
@@ -122,10 +122,11 @@
                 <thead>
                     <tr class="text-gray-400 border-b border-gray-50 bg-gray-50/10">
                         <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest w-16">No</th>
-                        <th class="px-8 py-4 text-left text-[10px] font-black uppercase tracking-widest">Mahasiswa</th>
+                        <th class="px-8 py-4 text-left text-[10px] font-black uppercase tracking-widest">Siswa</th>
                         <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Kelas</th>
                         <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Status</th>
-                        <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Timestamp</th>
+                        <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Waktu</th>
+                        <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Aksi</th> {{-- Kolom Baru --}}
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -149,13 +150,19 @@
                         </td>
                         <td class="px-8 py-5 text-center">
                             @php
+                                // Pemetaan Status agar lebih deskriptif
                                 $statusMap = [
-                                    'H' => ['label' => 'HADIR', 'css' => 'bg-emerald-50 text-emerald-600 border-emerald-100'],
-                                    'S' => ['label' => 'SAKIT', 'css' => 'bg-amber-50 text-amber-600 border-amber-100'],
-                                    'I' => ['label' => 'IZIN', 'css' => 'bg-blue-50 text-blue-600 border-blue-100'],
-                                    'A' => ['label' => 'ALFA', 'css' => 'bg-rose-50 text-rose-600 border-rose-100']
+                                    'Hadir' => ['label' => 'HADIR', 'css' => 'bg-emerald-50 text-emerald-600 border-emerald-100'],
+                                    'Sakit' => ['label' => 'SAKIT', 'css' => 'bg-amber-50 text-amber-600 border-amber-100'],
+                                    'Izin'  => ['label' => 'IZIN', 'css' => 'bg-blue-50 text-blue-600 border-blue-100'],
+                                    'Alpa'  => ['label' => 'ALPA', 'css' => 'bg-rose-50 text-rose-600 border-rose-100'],
+                                    // Fallback jika database menggunakan inisial (H, S, I, A)
+                                    'H'     => ['label' => 'HADIR', 'css' => 'bg-emerald-50 text-emerald-600 border-emerald-100'],
+                                    'S'     => ['label' => 'SAKIT', 'css' => 'bg-amber-50 text-amber-600 border-amber-100'],
+                                    'I'     => ['label' => 'IZIN', 'css' => 'bg-blue-50 text-blue-600 border-blue-100'],
+                                    'A'     => ['label' => 'ALPA', 'css' => 'bg-rose-50 text-rose-600 border-rose-100']
                                 ];
-                                $current = $statusMap[$a->status] ?? ['label' => $a->status, 'css' => 'bg-gray-100'];
+                                $current = $statusMap[$a->status] ?? ['label' => $a->status, 'css' => 'bg-gray-100 text-gray-600 border-gray-200'];
                             @endphp
                             <span class="{{ $current['css'] }} border text-[9px] font-black px-4 py-2 rounded-xl inline-block min-w-[90px] text-center shadow-sm">
                                 {{ $current['label'] }}
@@ -167,10 +174,17 @@
                                 <span class="text-[9px] text-gray-400 font-bold italic uppercase tracking-widest">{{ $a->created_at->format('d M Y') }}</span>
                             </div>
                         </td>
+                        <td class="px-8 py-5 text-center">
+                            {{-- Tombol Edit untuk Admin --}}
+                            <a href="{{ route('admin.absensi.edit', $a->id) }}" 
+                               class="inline-flex items-center justify-center w-9 h-9 bg-slate-100 text-slate-500 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm group/btn active:scale-90">
+                                <i class="fa-solid fa-pen-to-square text-[11px]"></i>
+                            </a>
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-8 py-32 text-center">
+                        <td colspan="6" class="px-8 py-32 text-center">
                             <div class="flex flex-col items-center gap-3">
                                 <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-2">
                                     <i class="fa-solid fa-database text-gray-200 text-3xl"></i>
