@@ -25,78 +25,73 @@
         
         {{-- Filter Section --}}
         <div class="p-6 border-b border-gray-50 bg-gray-50/30">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                {{-- Label Parameter --}}
-                <div class="flex-shrink-0">
-                    <h3 class="text-xs font-black text-gray-800 uppercase tracking-widest flex items-center gap-2 mb-1">
-                        <i class="fa-solid fa-filter text-blue-600"></i> Parameter Filter
-                    </h3>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tight italic">Mode: {{ request('mode') == 'bulanan' ? 'Rekap Bulanan' : 'Harian' }}</p>
-                </div>
+            <form method="GET" action="{{ route('admin.absensi.index') }}">
+                <div class="flex flex-wrap items-end gap-4">
+                    
+                    {{-- Filter Tahun Ajaran (Dinamis dari Data Nilai/Setting) --}}
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">Tahun Ajaran</label>
+                        <select name="tahun_ajaran" class="h-[42px] w-40 bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
+                            @foreach($listTahun as $th)
+                                <option value="{{ $th }}" {{ request('tahun_ajaran', $setup->tahun_ajaran) == $th ? 'selected' : '' }}>
+                                    {{ $th }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                {{-- Form Filter --}}
-                <div class="overflow-x-auto pb-2 lg:pb-0">
-                    <form method="GET" action="{{ route('admin.absensi.index') }}" class="flex flex-nowrap items-end gap-3 min-w-max">
-                        {{-- Mode Filter --}}
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">Rentang Waktu</label>
-                            <select name="mode" onchange="this.form.submit()" class="h-[42px] bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
-                                <option value="harian" {{ request('mode') == 'harian' ? 'selected' : '' }}>Harian</option>
-                                <option value="bulanan" {{ request('mode') == 'bulanan' ? 'selected' : '' }}>Bulanan</option>
+                    {{-- Filter Semester --}}
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">Semester</label>
+                        <select name="semester" class="h-[42px] w-28 bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
+                            <option value="1" {{ request('semester', $setup->semester) == '1' ? 'selected' : '' }}>1 (Ganjil)</option>
+                            <option value="2" {{ request('semester', $setup->semester) == '2' ? 'selected' : '' }}>2 (Genap)</option>
+                        </select>
+                    </div>
+
+                    {{-- Mode Filter (Harian/Bulanan) --}}
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">Rentang</label>
+                        <select name="mode" onchange="this.form.submit()" class="h-[42px] bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
+                            <option value="harian" {{ request('mode') == 'harian' ? 'selected' : '' }}>Harian</option>
+                            <option value="bulanan" {{ request('mode') == 'bulanan' ? 'selected' : '' }}>Bulanan</option>
+                        </select>
+                    </div>
+
+                    {{-- Filter Tanggal/Bulan --}}
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">
+                            {{ request('mode') == 'bulanan' ? 'Pilih Bulan' : 'Pilih Tanggal' }}
+                        </label>
+                        @if(request('mode') == 'bulanan')
+                            <select name="filter_month" class="h-[42px] w-40 bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
+                                @foreach($months as $value => $name)
+                                    <option value="{{ $value }}" {{ request('filter_month', date('m')) == $value ? 'selected' : '' }}>{{ $name }}</option>
+                                @endforeach
                             </select>
-                        </div>
+                        @else
+                            <input type="date" name="filter_date" value="{{ request('filter_date', date('Y-m-d')) }}" 
+                                   class="h-[42px] bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer">
+                        @endif
+                    </div>
 
-                        {{-- Filter Dinamis --}}
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">
-                                {{ request('mode') == 'bulanan' ? 'Pilih Bulan' : 'Pilih Tanggal' }}
-                            </label>
-                            
-                            @if(request('mode') == 'bulanan')
-                                <select name="filter_month" class="h-[42px] w-48 bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
-                                    @php
-                                        $months = [
-                                            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', 
-                                            '04' => 'April', '05' => 'Mei', '06' => 'Juni', 
-                                            '07' => 'Juli', '08' => 'Agustus', '09' => 'September', 
-                                            '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
-                                        ];
-                                    @endphp
-                                    @foreach($months as $value => $name)
-                                        <option value="{{ $value }}" {{ request('filter_month', date('m')) == $value ? 'selected' : '' }}>
-                                            {{ $name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            @else
-                                <input type="date" name="filter_date" value="{{ request('filter_date', date('Y-m-d')) }}" 
-                                       class="h-[42px] bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all cursor-pointer">
-                            @endif
-                        </div>
+                    {{-- Filter Kelas --}}
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">Kelas</label>
+                        <select name="kelas" class="h-[42px] w-40 bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
+                            <option value="">-- Semua Kelas --</option>
+                            @foreach($listKelas as $k)
+                                <option value="{{ $k->nama_kelas }}" {{ request('kelas') == $k->nama_kelas ? 'selected' : '' }}>Kelas {{ $k->nama_kelas }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                        {{-- Filter Kelas --}}
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-[9px] font-black text-blue-600 uppercase tracking-[0.1em] ml-1">Pilih Kelas</label>
-                            <div class="relative group">
-                                <select name="kelas" class="h-[42px] w-44 bg-white border border-gray-200 text-gray-700 text-xs rounded-xl px-4 py-2.5 font-bold shadow-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer">
-                                    <option value="">-- Semua Kelas --</option>
-                                    @foreach($listKelas as $k)
-                                        <option value="{{ $k->nama_kelas }}" {{ request('kelas') == $k->nama_kelas ? 'selected' : '' }}>
-                                            Kelas {{ $k->nama_kelas }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 text-[9px] pointer-events-none group-focus-within:rotate-180 transition-transform"></i>
-                            </div>
-                        </div>
-
-                        {{-- Tombol Submit --}}
-                        <button type="submit" class="h-[42px] bg-blue-600 hover:bg-blue-700 text-white font-black px-6 rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 uppercase text-[10px] tracking-widest flex items-center gap-2 flex-shrink-0">
-                            <i class="fa-solid fa-magnifying-glass"></i> Filter
-                        </button>
-                    </form>
+                    {{-- Tombol Filter --}}
+                    <button type="submit" class="h-[42px] bg-blue-600 hover:bg-blue-700 text-white font-black px-6 rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 uppercase text-[10px] tracking-widest flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i> Cari
+                    </button>
                 </div>
-            </div>
+            </form>
         </div>
 
         {{-- Info Bar --}}
@@ -104,11 +99,7 @@
             <div class="flex items-center gap-2">
                 <div class="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
                 <span class="text-[10px] font-black text-slate-700 uppercase tracking-widest">
-                    @if(request('mode') == 'bulanan')
-                        Rekap Bulanan: {{ $months[request('filter_month', date('m'))] ?? 'N/A' }}
-                    @else
-                        Presensi Harian: {{ \Carbon\Carbon::parse(request('filter_date', date('Y-m-d')))->format('d F Y') }}
-                    @endif
+                    Periode: {{ request('tahun_ajaran', $setup->tahun_ajaran) }} (Smtr {{ request('semester', $setup->semester) }})
                 </span>
             </div>
             <span class="text-[10px] font-bold text-gray-400 uppercase italic">
@@ -126,7 +117,7 @@
                         <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Kelas</th>
                         <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Status</th>
                         <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Waktu</th>
-                        <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Aksi</th> {{-- Kolom Baru --}}
+                        <th class="px-8 py-4 text-center text-[10px] font-black uppercase tracking-widest">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -150,13 +141,11 @@
                         </td>
                         <td class="px-8 py-5 text-center">
                             @php
-                                // Pemetaan Status agar lebih deskriptif
                                 $statusMap = [
                                     'Hadir' => ['label' => 'HADIR', 'css' => 'bg-emerald-50 text-emerald-600 border-emerald-100'],
                                     'Sakit' => ['label' => 'SAKIT', 'css' => 'bg-amber-50 text-amber-600 border-amber-100'],
                                     'Izin'  => ['label' => 'IZIN', 'css' => 'bg-blue-50 text-blue-600 border-blue-100'],
                                     'Alpa'  => ['label' => 'ALPA', 'css' => 'bg-rose-50 text-rose-600 border-rose-100'],
-                                    // Fallback jika database menggunakan inisial (H, S, I, A)
                                     'H'     => ['label' => 'HADIR', 'css' => 'bg-emerald-50 text-emerald-600 border-emerald-100'],
                                     'S'     => ['label' => 'SAKIT', 'css' => 'bg-amber-50 text-amber-600 border-amber-100'],
                                     'I'     => ['label' => 'IZIN', 'css' => 'bg-blue-50 text-blue-600 border-blue-100'],
@@ -175,7 +164,6 @@
                             </div>
                         </td>
                         <td class="px-8 py-5 text-center">
-                            {{-- Tombol Edit untuk Admin --}}
                             <a href="{{ route('admin.absensi.edit', $a->id) }}" 
                                class="inline-flex items-center justify-center w-9 h-9 bg-slate-100 text-slate-500 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm group/btn active:scale-90">
                                 <i class="fa-solid fa-pen-to-square text-[11px]"></i>

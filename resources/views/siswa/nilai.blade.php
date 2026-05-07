@@ -14,80 +14,44 @@
             <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Nama : <span class="text-gray-900 ml-2">{{ auth()->user()->name }}</span></p>
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">NISN : <span class="text-gray-900 ml-2">{{ $siswa->nisn ?? '-' }}</span></p>
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Kelas Aktif : <span class="text-gray-900 ml-2">{{ $siswa->kelas ?? '-' }}</span></p>
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Kelas Aktif : <span class="text-gray-900 ml-2 font-bold">{{ $siswa->kelas ?? '-' }}</span></p>
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status : <span class="text-[#064e3b] ml-2 italic">Siswa Aktif</span></p>
             </div>
         </div>
         <div class="mt-6 md:mt-0 text-right bg-gray-50 p-4 rounded-2xl border border-gray-100">
-            <p class="text-[10px] font-black text-[#ffb800] uppercase tracking-[0.2em]">Semester {{ $semester_filter ?? $setting->semester }} ({{ ($semester_filter ?? $setting->semester) == 1 ? 'Ganjil' : 'Genap' }})</p>
-            <p class="text-sm font-black text-[#064e3b] uppercase">Tahun Ajaran {{ $tahun_filter ?? $setting->tahun_ajaran }}</p>
+            <p class="text-[10px] font-black text-[#ffb800] uppercase tracking-[0.2em]">
+                Semester {{ $semester_filter }} ({{ $semester_filter == 1 ? 'Ganjil' : 'Genap' }})
+            </p>
+            <p class="text-sm font-black text-[#064e3b] uppercase">Tahun Ajaran {{ $tahun_filter }}</p>
         </div>
     </div>
 
-    {{-- Form Filter Pencarian --}}
+    {{-- Form Filter Pencarian (Tanpa Filter Kelas) --}}
     <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm ring-1 ring-black/5">
-        <form action="{{ route('siswa.nilai') }}" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-5 items-end">
+        <form action="{{ route('siswa.nilai') }}" method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+            {{-- Filter Tahun Ajaran --}}
             <div>
                 <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-1">Tahun Ajaran</label>
-                <select name="tahun_ajaran" class="w-full bg-gray-50 border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#064e3b] transition-all">
+                <select name="tahun_ajaran" class="w-full bg-gray-50 border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#064e3b] transition-all cursor-pointer">
                     @foreach($listTahun as $th)
-                        <option value="{{ $th }}" {{ ($tahun_filter ?? $setting->tahun_ajaran) == $th ? 'selected' : '' }}>{{ $th }}</option>
+                        <option value="{{ $th }}" {{ $tahun_filter == $th ? 'selected' : '' }}>{{ $th }}</option>
                     @endforeach
                 </select>
             </div>
+
+            {{-- Filter Semester --}}
             <div>
                 <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-1">Semester</label>
-                <select name="semester" class="w-full bg-gray-50 border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#064e3b] transition-all">
-                    <option value="1" {{ ($semester_filter ?? $setting->semester) == 1 ? 'selected' : '' }}>1 (Ganjil)</option>
-                    <option value="2" {{ ($semester_filter ?? $setting->semester) == 2 ? 'selected' : '' }}>2 (Genap)</option>
+                <select name="semester" class="w-full bg-gray-50 border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#064e3b] transition-all cursor-pointer">
+                    <option value="1" {{ $semester_filter == 1 ? 'selected' : '' }}>1 (Ganjil)</option>
+                    <option value="2" {{ $semester_filter == 2 ? 'selected' : '' }}>2 (Genap)</option>
                 </select>
             </div>
-            <div>
-                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block ml-1">Pilih Kelas</label>
-                <select name="kelas" class="w-full bg-gray-50 border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#064e3b] transition-all">
-                    @foreach($listKelas as $kls)
-                        <option value="{{ $kls }}" {{ ($kelas_filter ?? $siswa->kelas) == $kls ? 'selected' : '' }}>{{ $kls }}</option>
-                    @endforeach
-                </select>
-            </div>
+
             <button type="submit" class="bg-[#064e3b] hover:bg-[#053f30] text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-[#064e3b]/20 text-[10px] uppercase tracking-widest group">
-                <i class="fa-solid fa-magnifying-glass mr-2 group-hover:scale-110 transition-transform"></i> Filter Raport
+                <i class="fa-solid fa-magnifying-glass mr-2 group-hover:scale-110 transition-transform"></i> Cari Raport
             </button>
         </form>
-    </div>
-
-    {{-- Ringkasan Performa --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white border border-gray-100 p-5 rounded-2xl flex items-center justify-between shadow-sm group hover:border-[#064e3b]/30 transition-all">
-            <div>
-                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Mata Pelajaran</p>
-                <span class="text-2xl font-black text-gray-800">{{ count($rekapNilai) }}</span>
-            </div>
-            <div class="h-12 w-12 bg-gray-50 rounded-xl flex items-center justify-center text-[#064e3b]">
-                <i class="fa-solid fa-book-open text-xl"></i>
-            </div>
-        </div>
-        
-        <div class="bg-white border border-gray-100 p-5 rounded-2xl flex items-center justify-between shadow-sm group hover:border-[#064e3b]/30 transition-all">
-            <div>
-                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Nilai Rata-rata</p>
-                <span class="text-2xl font-black text-gray-800">{{ number_format(collect($rekapNilai)->avg('akhir'), 1) }}</span>
-            </div>
-            <div class="h-12 w-12 bg-gray-50 rounded-xl flex items-center justify-center text-blue-600">
-                <i class="fa-solid fa-chart-line text-xl"></i>
-            </div>
-        </div>
-
-        <div class="bg-[#064e3b] p-5 rounded-2xl flex items-center justify-between shadow-xl shadow-[#064e3b]/20 relative overflow-hidden">
-            <div class="relative z-10">
-                <p class="text-[9px] font-black text-white/60 uppercase tracking-widest mb-1">Status Kelulusan</p>
-                <span class="text-lg font-black text-white uppercase">{{ collect($rekapNilai)->every('akhir', '>=', 75) && count($rekapNilai) > 0 ? 'Lulus Mapel' : 'Ada Remedial' }}</span>
-            </div>
-            <div class="h-12 w-12 bg-white/10 rounded-xl flex items-center justify-center text-[#ffb800] relative z-10">
-                <i class="fa-solid fa-graduation-cap text-xl"></i>
-            </div>
-            <div class="absolute -right-4 -bottom-4 h-16 w-16 bg-white/5 rounded-full"></div>
-        </div>
     </div>
 
     {{-- Tabel Utama --}}
@@ -112,6 +76,10 @@
                         <td class="px-6 py-5 text-center font-bold text-gray-300 group-hover:text-[#ffb800] transition-colors">{{ $index + 1 }}</td>
                         <td class="px-6 py-5">
                             <div class="font-black text-slate-700 uppercase tracking-tight">{{ $item['mapel'] }}</div>
+                            {{-- Info kelas opsional jika data tersedia di array --}}
+                            @if(isset($item['kelas']))
+                                <div class="text-[9px] text-gray-400 font-bold uppercase italic">Kelas {{ $item['kelas'] }}</div>
+                            @endif
                         </td>
                         <td class="px-4 py-5 text-center font-bold text-slate-600">{{ $item['harian'] }}</td>
                         <td class="px-4 py-5 text-center font-bold text-slate-600">{{ $item['uts'] }}</td>
@@ -143,12 +111,37 @@
                                 <div class="h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                                     <i class="fa-solid fa-folder-open text-gray-200 text-2xl"></i>
                                 </div>
-                                <p class="text-gray-400 font-black uppercase text-[10px] tracking-widest">Tidak ada data nilai untuk filter yang dipilih.</p>
+                                <p class="text-gray-400 font-black uppercase text-[10px] tracking-widest">Tidak ada data nilai untuk periode ini.</p>
                             </div>
                         </td>
                     </tr>
                     @endforelse
                 </tbody>
+                
+                @if(count($rekapNilai) > 0)
+                <tfoot class="bg-gray-50/80 border-t-2 border-gray-100">
+                    <tr>
+                        <td colspan="2" class="px-6 py-6 font-black text-gray-500 uppercase tracking-widest text-[11px]">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-chart-simple text-[#064e3b]"></i>
+                                Rata-rata Nilai
+                            </div>
+                        </td>
+                        <td colspan="3"></td>
+                        <td class="px-6 py-6 text-center bg-[#064e3b]/10">
+                            <span class="text-sm font-black text-[#064e3b]">
+                                {{ number_format(collect($rekapNilai)->avg('akhir'), 1) }}
+                            </span>
+                        </td>
+                        <td colspan="2" class="px-6 py-6 text-right italic text-[9px] text-gray-400 font-bold uppercase tracking-tight">
+                            Status Kelulusan: 
+                            <span class="{{ collect($rekapNilai)->every('akhir', '>=', 75) ? 'text-emerald-600' : 'text-rose-600' }}">
+                                {{ collect($rekapNilai)->every('akhir', '>=', 75) ? 'Lulus Seluruh Mapel' : 'Ada Remedial' }}
+                            </span>
+                        </td>
+                    </tr>
+                </tfoot>
+                @endif
             </table>
         </div>
     </div>
@@ -164,8 +157,8 @@
                 <span class="text-[#064e3b]">SMAN 1 Jejangkit</span>
             </div>
         </div>
-        <div class="flex flex-col items-end">
-            <p class="text-[8px] text-gray-300 font-bold uppercase mt-2 tracking-tighter">Laporan digital ini sah dan dihasilkan secara sistem otomatis</p>
+        <div class="text-right">
+            <p class="text-[8px] text-gray-300 font-bold uppercase tracking-tighter italic">Dokumen ini diterbitkan secara digital oleh sistem informasi sekolah</p>
         </div>
     </div>
 </div>
@@ -174,7 +167,6 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .animate-fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     
-    /* Custom Scrollbar untuk Table */
     .overflow-x-auto::-webkit-scrollbar { height: 6px; }
     .overflow-x-auto::-webkit-scrollbar-track { background: #f1f1f1; }
     .overflow-x-auto::-webkit-scrollbar-thumb { background: #064e3b; border-radius: 10px; }

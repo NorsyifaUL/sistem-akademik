@@ -17,6 +17,7 @@ class SiswaController extends Controller
 {
     /**
      * Dashboard Siswa
+     * Menampilkan ringkasan jadwal hari ini, statistik absensi, dan notifikasi terbaru.
      */
     public function dashboard()
     {
@@ -28,7 +29,7 @@ class SiswaController extends Controller
         }
 
         $siswaId = $siswa->id;
-        $hariIni = \Carbon\Carbon::now()->isoFormat('dddd'); 
+        $hariIni = Carbon::now()->isoFormat('dddd'); 
 
         // Query Jadwal Hari Ini
         $jadwalHariIni = Jadwal::where('kelas', $siswa->kelas) 
@@ -38,11 +39,11 @@ class SiswaController extends Controller
             ->get();
 
         // Statistik
-        $absensiHariIni = Absensi::where('siswa_id', $siswaId)->whereDate('tanggal', \Carbon\Carbon::today())->count();
+        $absensiHariIni = Absensi::where('siswa_id', $siswaId)->whereDate('tanggal', Carbon::today())->count();
         $totalAbsensi = Absensi::where('siswa_id', $siswaId)->count();
         $totalNilai = Nilai::where('siswa_id', $siswaId)->count();
 
-        // Riwayat
+        // Riwayat Singkat
         $absensi = Absensi::where('siswa_id', $siswaId)
                     ->with(['jadwal.mapel'])
                     ->latest('tanggal')
@@ -50,6 +51,8 @@ class SiswaController extends Controller
                     ->get();
 
         $nilai = Nilai::where('siswa_id', $siswaId)->with(['jadwal.mapel'])->latest()->take(5)->get();
+        
+        // Ambil pengaturan sistem aktif
         $setting = Setting::first();
 
         // Notifikasi untuk dashboard
@@ -66,67 +69,74 @@ class SiswaController extends Controller
     }
 
     /**
-     * Fitur Nilai (Rekap per Mapel) - Versi Fix Error Column
+     * Fitur Nilai (Rekap per Mapel)
+     * Sinkron dengan Pengaturan Admin dan Tombol Cari.
      */
-public function nilai(Request $request)
-{
-    $siswa = Auth::user()->siswa;
-    if (!$siswa) return redirect()->back();
+    public function nilai(Request $request)
+    {
+        $user = Auth::user();
+        $siswa = $user->siswa;
+        if (!$siswa) return redirect()->back()->with('error', 'Data siswa tidak ditemukan');
 
-    $setting = Setting::first() ?? new Setting([
-        'tahun_ajaran' => '2025/2026',
-        'semester' => '1'
-    ]);
+        // 1. Ambil Pengaturan Pusat dari Admin
+        $setup = Setting::first();
 
-    $tahun_filter = $request->get('tahun_ajaran', $setting->tahun_ajaran);
-    $semester_filter = $request->get('semester', $setting->semester);
-    $kelas_filter = $request->get('kelas', $siswa->kelas);
+        // 2. Logika Filter: Gunakan input 'Cari', jika kosong gunakan default Admin
+        $tahun_filter = $request->get('tahun_ajaran', $setup->tahun_ajaran ?? '2024/2025');
+        $semester_filter = $request->get('semester', $setup->semester ?? '1');
 
-    // Ambil SEMUA mata pelajaran agar tetap muncul di tabel
-    $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
-    $rekapNilai = [];
+        // 3. Ambil daftar mata pelajaran
+        $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
+        $rekapNilai = [];
 
-    foreach ($mapels as $mapel) {
-        // Cari ID Jadwal yang sesuai dengan Mapel dan Kelas yang difilter
-        $jadwalIds = Jadwal::where('mapel_id', $mapel->id)
-                            ->where('kelas', trim($kelas_filter))
-                            ->pluck('id');
+        foreach ($mapels as $mapel) {
+            // Cari Jadwal yang sesuai kelas siswa dan mapel
+            $jadwalIds = Jadwal::where('mapel_id', $mapel->id)
+                                ->where('kelas', trim($siswa->kelas))
+                                ->pluck('id');
 
-        // Ambil data nilai berdasarkan jadwal tersebut
-        $nilaiData = Nilai::where('siswa_id', $siswa->id)
-                        ->whereIn('jadwal_id', $jadwalIds)
-                        ->get();
+            // Ambil data nilai berdasarkan filter tahun dan semester
+            $nilaiData = Nilai::where('siswa_id', $siswa->id)
+                            ->whereIn('jadwal_id', $jadwalIds)
+                            ->where('tahun_ajaran', $tahun_filter)
+                            ->where('semester', $semester_filter)
+                            ->get();
 
-        // HITUNG NILAI (Jika tidak ada data, otomatis nilainya 0)
-        $harian = $nilaiData->filter(function($n) {
-            return in_array(strtolower($n->jenis), ['harian', 'ulangan_bab', 'tugas']);
-        })->avg('nilai') ?? 0;
+            if ($nilaiData->isEmpty()) continue; // Skip jika mapel ini tidak ada nilai di periode ini
 
-        $uts = $nilaiData->filter(fn($n) => strtolower($n->jenis) == 'uts')->first()->nilai ?? 0;
-        $uas = $nilaiData->filter(fn($n) => strtolower($n->jenis) == 'uas')->first()->nilai ?? 0;
+            // Hitung rata-rata harian
+            $semuaHarian = $nilaiData->filter(function($n) {
+                return in_array(strtolower($n->jenis), ['harian', 'ulangan_bab', 'tugas']);
+            });
+            $harian = $semuaHarian->count() > 0 ? $semuaHarian->avg('nilai') : 0;
 
-        // Rumus Akhir
-        $akhir = round(($harian + $uts + $uas) / 3);
+            // Ambil UTS & UAS
+            $uts = $nilaiData->filter(fn($n) => strtolower($n->jenis) == 'uts')->first()->nilai ?? 0;
+            $uas = $nilaiData->filter(fn($n) => strtolower($n->jenis) == 'uas')->first()->nilai ?? 0;
 
-        // MASUKKAN KE ARRAY (Sekarang tanpa pengecekan count > 0 agar semua Mapel tampil)
-        $rekapNilai[] = [
-            'mapel' => $mapel->nama_mapel,
-            'harian' => round($harian),
-            'uts' => $uts,
-            'uas' => $uas,
-            'akhir' => $akhir,
-            'predikat' => $this->hitungPredikat($akhir)
-        ];
+            // Rumus Akhir Dinamis
+            $komponenAktif = collect([$harian, $uts, $uas])->filter(fn($v) => $v > 0);
+            $pembagi = $komponenAktif->count();
+            $akhir = $pembagi > 0 ? round($komponenAktif->sum() / $pembagi) : 0;
+
+            $rekapNilai[] = [
+                'mapel' => $mapel->nama_mapel,
+                'harian' => round($harian),
+                'uts' => $uts,
+                'uas' => $uas,
+                'akhir' => $akhir,
+                'predikat' => $this->hitungPredikat($akhir)
+            ];
+        }
+
+        // List untuk dropdown filter
+        $listTahun = ['2023/2024', '2024/2025', '2025/2026', '2026/2027'];
+
+        return view('siswa.nilai', compact(
+            'rekapNilai', 'siswa', 'setup', 'listTahun',
+            'tahun_filter', 'semester_filter'
+        ));
     }
-
-    $listTahun = ['2023/2024', '2024/2025', '2025/2026'];
-    $listKelas = ['X 1', 'X 2', 'XI 1', 'XI 2', 'XII IPA', 'XII IPS'];
-
-    return view('siswa.nilai', compact(
-        'rekapNilai', 'siswa', 'setting', 'listTahun', 'listKelas', 
-        'tahun_filter', 'semester_filter', 'kelas_filter'
-    ));
-}
 
     /**
      * Helper Hitung Predikat
@@ -150,7 +160,7 @@ public function nilai(Request $request)
         if (!$siswa) return redirect()->back();
 
         $notifikasis = Notifikasi::where('user_id', $user->id)
-            ->where('isi_pesan', 'LIKE', '%Alpa%') 
+            ->orWhere('kelas', trim($siswa->kelas))
             ->latest()
             ->paginate(10);
 
@@ -190,10 +200,13 @@ public function nilai(Request $request)
         return view('siswa.absensi', compact('absensi', 'semuaAbsensi'));
     }
 
+    /**
+     * Tampilan Profil
+     */
     public function profil()
     {
         $user = auth()->user();
-        $siswa = $user->siswa; // Mengambil relasi data siswa
+        $siswa = $user->siswa; 
 
         return view('siswa.profil', compact('user', 'siswa'));
     }

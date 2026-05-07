@@ -94,7 +94,7 @@
             {{-- Pengaturan --}}
             <a href="{{ route('admin.settings.index') }}" class="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 group whitespace-nowrap {{ request()->routeIs('admin.settings.*') ? 'bg-blue-700 font-bold shadow-lg text-white' : 'text-blue-100 hover:bg-blue-800 hover:text-white' }}">
                 <i class="fa-solid fa-gears w-6 text-center {{ request()->routeIs('admin.settings.*') ? 'text-white' : 'text-blue-400 group-hover:text-white' }}"></i>
-                <span class="ml-3 text-sm" x-show="sidebarOpen">Pengaturan Raport</span>
+                <span class="ml-3 text-sm" x-show="sidebarOpen">Pengaturan</span>
             </a>
         </nav>
 

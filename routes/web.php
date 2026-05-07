@@ -59,37 +59,27 @@ Route::middleware('auth')->group(function () {
     */
     Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
         
-        // Dashboard
+        // --- DASHBOARD & PROFIL ---
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-
         Route::get('/siswa/profil', [SiswaController::class, 'profil'])->name('siswa.profil');
 
-        
-        // Master Data (Resource)
+        // --- MASTER DATA (RESOURCE) ---
         Route::resource('guru', AdminGuruController::class);
         Route::resource('siswa', AdminSiswaController::class);
         Route::resource('mapel', AdminMapelController::class);
         Route::resource('jadwal', AdminJadwalController::class);
         Route::resource('kelas', KelasController::class);
 
-        // Password Management
+        // --- PASSWORD MANAGEMENT ---
         Route::post('/guru/{guru}/reset-password', [AdminGuruController::class, 'resetPassword'])->name('guru.reset-password');
         Route::post('/siswa/{siswa}/reset-password', [AdminSiswaController::class, 'resetPassword'])->name('siswa.reset-password');
 
         // --- MANAJEMEN ABSENSI (MONITORING) ---
-        // Letakkan rute statis/spesifik di ATAS agar tidak bentrok dengan {id} pada resource
+        // Rute statis diletakkan di atas rute dinamis agar tidak bentrok
         Route::get('/absensi/rekap', [AdminAbsensiController::class, 'rekap'])->name('absensi.rekap');
         Route::get('/absensi/cetak', [AdminAbsensiController::class, 'cetak'])->name('absensi.cetak');
-        
-        /**
-         * PERBAIKAN RUTE EDIT:
-         * Karena sudah di dalam prefix 'admin' dan name 'admin.', 
-         * URL cukup '/absensi/...' dan name cukup 'absensi.edit'.
-         */
         Route::get('/absensi/{id}/edit', [AdminAbsensiController::class, 'edit'])->name('absensi.edit');
         Route::put('/absensi/{id}', [AdminAbsensiController::class, 'update'])->name('absensi.update');
-
-        // Resource absensi dibatasi hanya index untuk monitoring daftar utama
         Route::resource('absensi', AdminAbsensiController::class)->only(['index']);
 
         // --- MANAJEMEN NILAI ---
@@ -98,16 +88,23 @@ Route::middleware('auth')->group(function () {
             Route::get('/detail/{id}', 'show')->name('show');       
             Route::get('/print', 'print')->name('print');           
             Route::get('/raport/{id}', 'cetakRaport')->name('raport'); 
-            
             Route::get('/input/{jadwal_id}', 'create')->name('create');
             Route::post('/store', 'store')->name('store');
         });
 
-        // Pengaturan & Notifikasi
-        Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.index');
-        Route::post('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
-        Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
-        Route::delete('/notifikasi/{id}', [NotifikasiController::class, 'destroy'])->name('notifikasi.destroy');        
+        // --- PENGATURAN SISTEM & RAPORT (GABUNGAN) ---
+        // Mengelola tabel 'settings' (Tahun Ajaran, Semester, TTD Kepsek, dll)
+        Route::controller(AdminSettingController::class)->prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', 'index')->name('index');         // Tampilan halaman pengaturan
+            Route::put('/update', 'update')->name('update');  // Proses simpan perubahan (menggunakan PUT)
+        });
+
+        // --- NOTIFIKASI ---
+        Route::controller(NotifikasiController::class)->prefix('notifikasi')->name('notifikasi.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::delete('/{id}', 'destroy')->name('destroy');
+        });
+
     });
     /*
     |--------------------------------------------------------------------------
@@ -160,32 +157,44 @@ Route::middleware('auth')->group(function () {
 
     });   
     
-    /*
+   /*
     |--------------------------------------------------------------------------
     | SISWA AREA
     |--------------------------------------------------------------------------
     */
-    Route::middleware('role:siswa')->prefix('siswa')->name('siswa.')->group(function () {
-        Route::get('/dashboard', [SiswaController::class,'dashboard'])->name('dashboard');
-        Route::get('/absensi', [SiswaController::class,'absensi'])->name('absensi');
-        Route::get('/nilai', [SiswaController::class,'nilai'])->name('nilai');
-        Route::get('/jadwal', [SiswaController::class,'jadwal'])->name('jadwal');
-        Route::get('/notifikasi', [SiswaController::class,'notifikasi'])->name('notifikasi.index');
+    Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function () {
         
-        // TAMBAHKAN INI: Route Profil khusus Siswa
-        Route::get('/profil', [SiswaController::class, 'profil'])->name('profil');
-        Route::post('/profil/update', [SiswaController::class, 'updateProfil'])->name('profil.update');
+        // Menggunakan Route Controller untuk SiswaController
+        Route::controller(SiswaController::class)->group(function () {
+            Route::get('/dashboard', 'dashboard')->name('dashboard');
+            Route::get('/absensi', 'absensi')->name('absensi');
+            Route::get('/nilai', 'nilai')->name('nilai');
+            Route::get('/jadwal', 'jadwal')->name('jadwal');
+            Route::get('/notifikasi', 'notifikasi')->name('notifikasi.index');
+            
+            // Route Profil khusus Siswa
+            Route::get('/profil', 'profil')->name('profil');
+            Route::post('/profil/update', 'updateProfil')->name('profil.update');
+        });
     });
 
     /*
     |--------------------------------------------------------------------------
-    | SHARED PROFILE (Opsional: Tetap biarkan jika dipakai Admin/Guru lain)
+    | SHARED AREA (Profile & Password)
     |--------------------------------------------------------------------------
     */
-    Route::get('/profile', [ProfileController::class,'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class,'update'])->name('profile.update');
-    Route::get('/ganti-password', [App\Http\Controllers\Auth\ChangePasswordController::class,'index'])->name('password.form');
-    Route::post('/ganti-password', [App\Http\Controllers\Auth\ChangePasswordController::class,'update'])->name('password.update');
-});
+    Route::middleware('auth')->group(function () {
+        // Profile Default Laravel/Breeze
+        Route::controller(ProfileController::class)->prefix('profile')->name('profile.')->group(function () {
+            Route::get('/', 'edit')->name('edit');
+            Route::patch('/', 'update')->name('update');
+        });
 
+        // Ganti Password
+        Route::controller(App\Http\Controllers\Auth\ChangePasswordController::class)->group(function () {
+            Route::get('/ganti-password', 'index')->name('password.form');
+            Route::post('/ganti-password', 'update')->name('password.update');
+        });
+    }); 
+});
 require __DIR__.'/auth.php';

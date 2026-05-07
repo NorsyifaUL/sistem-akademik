@@ -8,8 +8,11 @@
     </div>
     <div class="flex items-center gap-3">
         <div class="text-right hidden sm:block">
-            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Tahun Ajaran</p>
-            <p class="text-xs font-bold text-gray-700">2025/2026 ({{ ($setting->semester ?? 1) == 1 ? 'Ganjil' : 'Genap' }})</p>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Tahun Ajaran Aktif</p>
+            <p class="text-xs font-bold text-gray-700">
+                {{ $setting->tahun_ajaran ?? '-' }} 
+                ({{ ($setting->semester ?? 1) == 1 || $setting->semester == 'Ganjil' ? 'Ganjil' : 'Genap' }})
+            </p>
         </div>
         <div class="h-8 w-[1px] bg-gray-200 mx-2 hidden sm:block"></div>
         <span class="bg-green-50 text-green-700 text-[10px] font-bold px-4 py-2 rounded-full border border-green-100 uppercase tracking-widest shadow-sm">
@@ -80,7 +83,7 @@
 
                     <td class="px-8 py-5 text-right">
                         <div class="flex justify-end gap-3 print:hidden">
-                            <a href="{{ route('guru.absensi.index') }}" 
+                            <a href="{{ route('guru.absensi.index', ['jadwal_id' => $item->id]) }}" 
                                class="inline-flex items-center px-4 py-2.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white rounded-xl font-bold text-[10px] uppercase tracking-widest border border-emerald-100 transition-all active:scale-95 shadow-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -93,7 +96,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                 </svg>
-                                Siswa
+                                Siswa & Nilai
                             </a>
                         </div>
                     </td>

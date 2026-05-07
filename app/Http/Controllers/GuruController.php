@@ -81,10 +81,10 @@ class GuruController extends Controller
             ->latest('updated_at')
             ->take(5)
             ->get();
+        $setting = Setting::first();
 
         return view('guru.dashboard', array_merge($meta, compact(
-            'jadwalHariIni', 'absensiHariIni', 'totalSiswa', 'alpaHariIni', 'nilaiSiswa'
-        )));
+            'jadwalHariIni', 'absensiHariIni', 'totalSiswa', 'alpaHariIni', 'nilaiSiswa', 'setting' )));
     }
 
     /*
@@ -682,20 +682,27 @@ public function rekapNilai(Request $request)
         return view('guru.raport.index', compact('siswas', 'setting', 'infoKelas'));
     }
 
-    public function indexJadwal()
+public function indexJadwal()
     {
         // 1. Ambil data guru yang sedang login berdasarkan user_id
         $user = auth()->user();
         $guru = \App\Models\Guru::where('user_id', $user->id)->first();
 
-        // 2. Ambil semua jadwal mengajar guru tersebut
-        // Pastikan relasi 'mapel' sudah ada di Model Jadwal
+        // VALIDASI: Jika data guru tidak ada
+        if (!$guru) {
+            return redirect()->back()->with('error', 'Profil Guru tidak ditemukan.');
+        }
+
+        // 2. Ambil data Setting (Untuk Tahun Ajaran & Semester)
+        $setting = \App\Models\Setting::first();
+
+        // 3. Ambil semua jadwal mengajar guru tersebut
         $jadwals = \App\Models\Jadwal::with('mapel')
                     ->where('guru_id', $guru->id)
                     ->get();
 
-        // 3. Arahkan ke view index di folder guru/jadwal
-        return view('guru.jadwal.index', compact('jadwals', 'guru'));
+        // 4. Arahkan ke view dan KIRIM variabel 'setting'
+        return view('guru.jadwal.index', compact('jadwals', 'guru', 'setting'));
     }
 
    public function storeNilai(Request $request, $id)
@@ -733,7 +740,8 @@ public function rekapNilai(Request $request)
         // Mengambil data user yang sedang login beserta relasi gurunya
         $user = auth()->user();
         $guru = $user->guru; 
+        $setting = Setting::first();
 
-        return view('guru.profil', compact('user', 'guru'));
+        return view('guru.profil', compact('user', 'guru', 'setting'));
     }
 }

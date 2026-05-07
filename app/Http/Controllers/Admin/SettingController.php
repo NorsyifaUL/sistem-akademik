@@ -13,8 +13,7 @@ class SettingController extends Controller
      */
     public function index()
     {
-        // Gunakan firstOrNew agar jika tabel kosong, sistem tetap memberikan object kosong
-        // Ini mencegah error "Attempt to read property on null" di file Blade
+        // Mengambil data pengaturan pertama (ID 1)
         $setting = Setting::first() ?? new Setting();
         
         return view('admin.settings.index', compact('setting'));
@@ -32,20 +31,22 @@ class SettingController extends Controller
             'nama_kepsek'  => 'required|string',
             'nip_kepsek'   => 'required|string',
         ], [
-            // Tambahkan pesan custom agar lebih user-friendly untuk Admin SMANJA
             'tahun_ajaran.required' => 'Tahun Pelajaran tidak boleh kosong!',
             'tgl_raport.required'   => 'Tanggal raport harus ditentukan!',
+            'nama_kepsek.required'  => 'Nama Kepala Sekolah wajib diisi!',
         ]);
 
-        // Tetap menggunakan logika andalanmu: Cari ID 1, atau buat baru jika tidak ada
-        $setting = Setting::first() ?? new Setting();
-        
-        $setting->tahun_ajaran = $request->tahun_ajaran;
-        $setting->semester     = $request->semester;
-        $setting->tgl_raport   = $request->tgl_raport;
-        $setting->nama_kepsek  = $request->nama_kepsek;
-        $setting->nip_kepsek   = $request->nip_kepsek;
-        $setting->save();
+        // Menggunakan updateOrCreate agar lebih ringkas & aman (mengunci ID 1)
+        Setting::updateOrCreate(
+            ['id' => 1], 
+            [
+                'tahun_ajaran' => $request->tahun_ajaran,
+                'semester'     => $request->semester,
+                'tgl_raport'   => $request->tgl_raport,
+                'nama_kepsek'  => $request->nama_kepsek,
+                'nip_kepsek'   => $request->nip_kepsek,
+            ]
+        );
 
         return redirect()->route('admin.settings.index')->with('success', 'Konfigurasi Akademik SMAN 1 Jejangkit Berhasil Diperbarui!');
     }

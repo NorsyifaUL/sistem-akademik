@@ -7,33 +7,52 @@ use Illuminate\Http\Request;
 use App\Models\Absensi;
 use App\Models\Kelas;
 use App\Models\Setting;
+use App\Models\Nilai; 
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class AbsensiController extends Controller
 {
     /**
-     * Menampilkan daftar absensi dengan filter
+     * Menampilkan daftar absensi dengan filter sinkron
      */
     public function index(Request $request)
     {
-        // 1. Tangkap parameter filter dari request
+        $setup = Setting::first();
+
+        // 1. Tangkap parameter filter
         $mode = $request->get('mode', 'harian');
         $filterKelas = $request->get('kelas');
         $tanggal = $request->get('filter_date', date('Y-m-d'));
         $bulan = $request->get('filter_month', date('m'));
+        $semester = $request->get('semester', $setup->semester ?? '1');
+        $tahun_ajaran = $request->get('tahun_ajaran', $setup->tahun_ajaran ?? '');
 
         // 2. Query dasar dengan relasi
         $query = Absensi::with(['siswa.dataKelas', 'jadwal.mapel']);
 
-        // 3. Logika Filter Waktu (Harian vs Bulanan)
+        // 3. Logika Filter Waktu
         if ($mode == 'bulanan') {
-            $query->whereMonth('created_at', $bulan)
-                  ->whereYear('created_at', date('Y'));
+            $query->whereMonth('created_at', $bulan);
+            
+            // Mengambil tahun dari filter_date jika ada, atau tahun saat ini
+            $tahunInput = date('Y', strtotime($tanggal));
+            $query->whereYear('created_at', $tahunInput);
         } else {
             $query->whereDate('created_at', $tanggal);
         }
 
-        // 4. Logika Filter Kelas
+        // 4. Logika Filter Semester (Berdasarkan Rentang Bulan)
+        if ($semester == '1') {
+            // Semester Ganjil: Juli s/d Desember
+            $query->whereMonth('created_at', '>=', '07')
+                  ->whereMonth('created_at', '<=', '12');
+        } else {
+            // Semester Genap: Januari s/d Juni
+            $query->whereMonth('created_at', '>=', '01')
+                  ->whereMonth('created_at', '<=', '06');
+        }
+
+        // 5. Logika Filter Kelas
         if ($filterKelas) {
             $query->whereHas('siswa.dataKelas', function($q) use ($filterKelas) {
                 $q->where('nama_kelas', $filterKelas);
@@ -42,27 +61,34 @@ class AbsensiController extends Controller
 
         $absensis = $query->latest()->get();
         
-        // 5. Ambil list kelas untuk dropdown filter
+        // 6. Data Pendukung Dropdown
         $listKelas = Kelas::orderBy('nama_kelas', 'asc')->get(); 
+        $listTahun = Nilai::select('tahun_ajaran')->distinct()->pluck('tahun_ajaran');
+        
+        if($listTahun->isEmpty() && isset($setup->tahun_ajaran)) {
+            $listTahun = collect([$setup->tahun_ajaran]);
+        }
 
-        // 6. Kirim semua variabel ke view
+        $months = [
+            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', 
+            '04' => 'April', '05' => 'Mei', '06' => 'Juni', 
+            '07' => 'Juli', '08' => 'Agustus', '09' => 'September', 
+            '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+        ];
+
         return view('admin.absensi.index', [
             'absensis' => $absensis,
             'listKelas' => $listKelas,
+            'listTahun' => $listTahun,
+            'setup' => $setup,
             'mode' => $mode,
             'filter_date' => $tanggal,
             'filter_month' => $bulan,
+            'filter_semester' => $semester, // Dikirim agar dropdown tetap 'selected'
+            'filter_tahun' => $tahun_ajaran,
+            'months' => $months,
             'filterKelas' => $filterKelas
         ]);
-    }
-
-    /**
-     * Menampilkan form edit presensi (Fitur Khusus Admin)
-     */
-    public function edit(int $id)
-    {
-        $absensi = Absensi::with('siswa')->findOrFail($id);
-        return view('admin.absensi.edit', compact('absensi'));
     }
 
     /**
@@ -73,40 +99,42 @@ class AbsensiController extends Controller
         $request->validate([
             'status' => 'required|in:Hadir,Sakit,Izin,Alpa',
             'keterangan' => 'nullable|string|max:255'
-        ], [
-            'status.required' => 'Status kehadiran harus dipilih.',
-            'status.in' => 'Status tidak valid.'
         ]);
 
         $absensi = Absensi::findOrFail($id);
-        
         $absensi->update([
             'status' => $request->status,
             'keterangan' => $request->keterangan
         ]);
 
-        return redirect()->route('admin.absensi.index')
-            ->with('success', 'Data presensi ' . $absensi->siswa->nama . ' berhasil dikoreksi.');
+        return redirect()->back()->with('success', 'Data presensi berhasil dikoreksi.');
     }
 
     /**
-     * Fungsi untuk Export ke PDF dengan data dari Tabel Settings
+     * Export ke PDF dengan header periode yang sesuai
      */
     public function cetak(Request $request)
     {
+        $setup = Setting::first();
         $mode = $request->get('mode', 'harian');
         $filterKelas = $request->get('kelas');
         $tanggal = $request->get('filter_date', date('Y-m-d'));
         $bulan = $request->get('filter_month', date('m'));
+        $semester = $request->get('semester', $setup->semester ?? '1');
 
-        // Ambil Data Absensi
         $query = Absensi::with(['siswa.dataKelas', 'jadwal.mapel']);
 
         if ($mode == 'bulanan') {
-            $query->whereMonth('created_at', $bulan)
-                ->whereYear('created_at', date('Y'));
+            $query->whereMonth('created_at', $bulan);
         } else {
             $query->whereDate('created_at', $tanggal);
+        }
+
+        // Filter semester di PDF disamakan dengan index
+        if ($semester == '1') {
+            $query->whereMonth('created_at', '>=', '07')->whereMonth('created_at', '<=', '12');
+        } else {
+            $query->whereMonth('created_at', '>=', '01')->whereMonth('created_at', '<=', '06');
         }
 
         if ($filterKelas) {
@@ -117,32 +145,26 @@ class AbsensiController extends Controller
 
         $absensis = $query->latest()->get();
 
-        // Ambil Data Pengaturan Aplikasi/Sekolah
-        $settings = Setting::first(); 
-
-        // Data meta untuk header di PDF
         $info = [
             'mode'           => $mode,
             'tanggal'        => $tanggal,
             'bulan'          => $this->getNamaBulan($bulan),
+            'tahun_ajaran'   => $request->get('tahun_ajaran', $setup->tahun_ajaran),
+            'semester'       => $semester,
             'kelas'          => $filterKelas ?? 'Semua Kelas',
             'total'          => $absensis->count(),
-            'nama_sekolah'   => $settings->nama_sekolah ?? 'NAMA SEKOLAH BELUM DIATUR',
-            'alamat'         => $settings->alamat ?? 'Alamat belum diatur di menu settings.',
-            'logo'           => $settings->logo ?? null,
-            'kepala_sekolah' => $settings->nama_kepsek ?? '...........................',
-            'nip'            => $settings->nip_kepsek ?? '...........................'
+            'nama_sekolah'   => $setup->nama_sekolah ?? 'SMAN 1 JEJANGKIT',
+            'alamat'         => $setup->alamat ?? '-',
+            'kepala_sekolah' => $setup->nama_kepsek ?? '...........................',
+            'nip'            => $setup->nip_kepsek ?? '...........................'
         ];
 
         $pdf = Pdf::loadView('admin.absensi.pdf', compact('absensis', 'info'))
-                ->setPaper('a4', 'portrait');
+                  ->setPaper('a4', 'portrait');
 
-        return $pdf->stream('Laporan_Absensi_' . date('YmdHis') . '.pdf');
+        return $pdf->stream('Laporan_Absensi.pdf');
     }
 
-    /**
-     * Fungsi pembantu untuk konversi angka bulan ke nama Indonesia
-     */
     private function getNamaBulan(int $bulan)
     {
         $bulanStr = str_pad($bulan, 2, '0', STR_PAD_LEFT);
