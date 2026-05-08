@@ -1,21 +1,32 @@
 @extends('layouts.siswa')
 
 @section('content')
-<div class="space-y-10">
-    {{-- Header: Bersih & Modern --}}
-    <div class="border-b border-gray-100 pb-6">
-        <h2 class="text-3xl font-black text-gray-800 tracking-tight">Jadwal Pelajaran</h2>
-        <div class="flex items-center gap-2 mt-2">
-            {{-- Perbaikan: Menggunakan @endphp dan nama variabel yang konsisten --}}
-            @php
-                $nama_kelas = auth()->user()->siswa->dataKelas->nama_kelas ?? (auth()->user()->siswa->kelas ?? 'Belum Ditentukan');
-            @endphp
-            
-            <span class="bg-green-100 text-[#064e3b] text-[10px] font-extrabold px-3 py-1 rounded-lg uppercase tracking-wider">
-                Kelas: {{ $nama_kelas }}
+<div class="space-y-10 animate-fade-in">
+    {{-- Header: Dinamis berdasarkan Setting --}}
+    <div class="border-b border-gray-100 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-black text-gray-800 tracking-tight uppercase">Jadwal Pelajaran</h2>
+            <div class="flex items-center gap-2 mt-2">
+                @php
+                    $nama_kelas = auth()->user()->siswa->dataKelas->nama_kelas ?? (auth()->user()->siswa->kelas ?? 'Belum Ditentukan');
+                @endphp
+                
+                <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-3 py-1 rounded-lg uppercase tracking-wider">
+                    Kelas: {{ $nama_kelas }}
+                </span>
+                <span class="text-gray-300 text-xs">•</span>
+                <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">
+                    Tahun Ajaran {{ $setup->tahun_ajaran ?? '2025/2026' }} 
+                    <span class="text-emerald-500">({{ $setup->semester == 1 ? 'Ganjil' : 'Genap' }})</span>
+                </p>
+            </div>
+        </div>
+
+        {{-- Badge Hari Ini --}}
+        <div class="hidden md:block">
+            <span class="bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-tighter">
+                <i class="fa-solid fa-calendar-day mr-1"></i> Hari Ini: {{ \Carbon\Carbon::now()->isoFormat('dddd') }}
             </span>
-            <span class="text-gray-300 text-xs">•</span>
-            <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Tahun Ajaran 2025/2026</p>
         </div>
     </div>
 
@@ -24,60 +35,57 @@
         <div class="space-y-5">
             {{-- Judul Hari --}}
             <div class="flex items-center gap-4">
-                <div class="h-10 w-1 bg-[#ffb800] rounded-full"></div>
-                <h3 class="text-xl font-black text-[#064e3b] uppercase tracking-tighter italic">
+                <div class="h-8 w-1.5 bg-amber-400 rounded-full shadow-sm"></div>
+                <h3 class="text-xl font-black text-gray-800 uppercase tracking-tighter italic">
                     {{ $hari }}
                 </h3>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($listJadwal as $jadwal)
-                <div class="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 hover:shadow-xl hover:border-[#ffb800]/30 transition-all duration-300 group">
-                    <div class="flex justify-between items-start mb-5">
+                <div class="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 hover:shadow-xl hover:border-amber-400/30 transition-all duration-300 group relative overflow-hidden">
+                    {{-- Decorative Element --}}
+                    <div class="absolute -right-4 -top-4 h-16 w-16 bg-gray-50 rounded-full group-hover:bg-amber-50 transition-colors duration-300"></div>
+
+                    <div class="flex justify-between items-start mb-5 relative">
                         <div class="flex flex-col">
                             <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Waktu Belajar</span>
-                            <span class="bg-[#064e3b] text-white text-xs font-bold px-4 py-1.5 rounded-xl shadow-inner">
+                            <span class="bg-gray-900 text-white text-xs font-bold px-4 py-1.5 rounded-xl shadow-sm">
                                 {{ date('H:i', strtotime($jadwal->jam_mulai)) }} — {{ date('H:i', strtotime($jadwal->jam_selesai)) }}
                             </span>
                         </div>
-                        <div class="h-10 w-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300 group-hover:text-[#ffb800] group-hover:bg-yellow-50 transition-all duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                            </svg>
+                        <div class="h-10 w-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300 group-hover:text-amber-500 group-hover:bg-white transition-all duration-300 shadow-sm">
+                            <i class="fa-solid fa-book-open text-lg"></i>
                         </div>
                     </div>
                     
                     {{-- Judul Mata Pelajaran --}}
-                    <h3 class="text-xl font-extrabold text-gray-800 leading-none tracking-tight">
+                    <h3 class="text-xl font-extrabold text-gray-800 leading-none tracking-tight group-hover:text-emerald-700 transition-colors">
                         {{ $jadwal->mapel->nama_mapel ?? 'Mata Pelajaran' }}
                     </h3>
 
-                    <div class="mt-5 space-y-3">
+                    <div class="mt-6 space-y-4">
                         {{-- Nama Guru --}}
                         <div class="flex items-center gap-3">
-                            <div class="h-8 w-8 rounded-lg bg-green-50 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#064e3b]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
+                            <div class="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
+                                <i class="fa-solid fa-chalkboard-user text-emerald-600 text-xs"></i>
                             </div>
                             <div>
-                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Guru Mapel</p>
-                                <p class="text-[13px] text-gray-600 font-bold leading-tight">
+                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Guru Pengajar</p>
+                                <p class="text-[12px] text-gray-700 font-bold leading-tight">
                                     {{ $jadwal->guru->nama_guru ?? ($jadwal->guru->nama ?? 'Guru Belum Ditentukan') }}
                                 </p>
                             </div>
                         </div>
 
-                        {{-- Lokasi Ruangan: Otomatis ke Nama Kelas --}}
+                        {{-- Lokasi Ruangan --}}
                         <div class="flex items-center gap-3">
-                            <div class="h-8 w-8 rounded-lg bg-yellow-50 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-[#ffb800]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                </svg>
+                            <div class="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100">
+                                <i class="fa-solid fa-location-dot text-amber-600 text-xs"></i>
                             </div>
                             <div>
-                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Lokasi Belajar</p>
-                                <p class="text-[11px] text-[#ffb800] font-bold uppercase tracking-tight">
+                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Ruang / Lokasi</p>
+                                <p class="text-[11px] text-amber-600 font-extrabold uppercase tracking-tight">
                                     {{ $jadwal->ruangan ?? 'Ruang Kelas ' . $nama_kelas }}
                                 </p>
                             </div>
@@ -90,14 +98,17 @@
     @empty
         {{-- State Kosong --}}
         <div class="bg-white p-24 rounded-[3rem] text-center border-4 border-dashed border-gray-50 flex flex-col items-center">
-            <div class="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" />
-                </svg>
+            <div class="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 text-gray-200">
+                <i class="fa-solid fa-calendar-xmark text-4xl"></i>
             </div>
-            <p class="text-gray-400 font-black uppercase tracking-[0.2em] text-sm">Jadwal Masih Kosong</p>
-            <p class="text-gray-300 text-xs mt-1">Belum ada jadwal yang diinput untuk kelas Anda.</p>
+            <p class="text-gray-400 font-black uppercase tracking-[0.2em] text-sm">Jadwal Belum Tersedia</p>
+            <p class="text-gray-300 text-xs mt-2 font-bold uppercase">Silahkan hubungi bagian kurikulum atau wali kelas.</p>
         </div>
     @endforelse
 </div>
+
+<style>
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+</style>
 @endsection

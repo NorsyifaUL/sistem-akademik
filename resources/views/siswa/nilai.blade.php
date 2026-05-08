@@ -49,7 +49,7 @@
             </div>
 
             <button type="submit" class="bg-[#064e3b] hover:bg-[#053f30] text-white font-black py-3 rounded-xl transition-all shadow-lg shadow-[#064e3b]/20 text-[10px] uppercase tracking-widest group">
-                <i class="fa-solid fa-magnifying-glass mr-2 group-hover:scale-110 transition-transform"></i> Cari Raport
+                <i class="fa-solid fa-magnifying-glass mr-2 group-hover:scale-110 transition-transform"></i> Cari
             </button>
         </form>
     </div>

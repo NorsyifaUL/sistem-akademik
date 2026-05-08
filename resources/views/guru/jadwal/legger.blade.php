@@ -12,10 +12,6 @@
             <p class="text-xs font-bold text-gray-700">{{ ($setting->semester ?? 1) == 1 ? 'Ganjil' : 'Genap' }} 2025/2026</p>
         </div>
         <div class="h-8 w-[1px] bg-gray-200 mx-2 hidden sm:block"></div>
-        
-        <button onclick="window.print()" class="bg-green-600 text-white text-[10px] font-bold px-5 py-2.5 rounded-full shadow-md hover:bg-green-700 transition-all active:scale-95 flex items-center tracking-widest uppercase">
-            <i class="fas fa-print mr-2 text-xs"></i> Cetak Rekap
-        </button>
     </div>
 </div>
 
