@@ -20,62 +20,72 @@ class AdminController extends Controller
     /**
      * Tampilan Dashboard Admin
      */
-    public function dashboard()
-    {
-        $totalGuru = Guru::count();
-        $totalSiswa = Siswa::count();
-        $totalMapel = Mapel::count();
-        $absensiHariIni = Absensi::whereDate('tanggal', Carbon::today())->count();
+ public function dashboard()
+{
+    $totalGuru = Guru::count();
+    $totalSiswa = Siswa::count();
+    $totalMapel = Mapel::count();
+    $absensiHariIni = Absensi::whereDate('tanggal', Carbon::today())->count();
 
-        // Ambil log aktivitas absensi terbaru untuk ditampilkan di dashboard admin
-        $notifikasis = Notifikasi::where('isi_pesan', 'LIKE', 'LOG:%')
-                        ->latest()
-                        ->take(10)
-                        ->get();
+    // Ambil log aktivitas absensi terbaru
+    $notifikasis = Notifikasi::where('isi_pesan', 'LIKE', 'LOG:%')
+                    ->latest()
+                    ->take(10)
+                    ->get();
 
-        // --- LOGIKA GRAFIK REAL-TIME SESUAI DATABASE ---
-        $tingkat = [
-            'Kelas X'   => 'X%',      // Mencari X1, X2, dst
-            'Kelas XI'  => 'XI%',     // Mencari XI 1, XI 2, dst
-            'Kelas XII' => 'XII%'     // Mencari XII IPA, XII IPS, dst
-        ];
+    // --- LOGIKA GRAFIK DINAMIS: Mengikuti Tabel Kelas ---
+    $daftarKelas = Kelas::orderBy('nama_kelas', 'asc')->get();
 
-        $dataChart = ['hadir' => [], 'izin' => [], 'alpa' => []];
+    $labels = [];
+    $dataHadir = [];
+    $dataIzin = [];
+    $dataAlpa = [];
 
-        foreach ($tingkat as $label => $pola) {
-            // Hitung Hadir
-            $dataChart['hadir'][] = Absensi::whereDate('tanggal', Carbon::today())
-                ->where('status', 'H')
-                ->whereHas('siswa', function($q) use ($pola) {
-                    $q->where('kelas', 'LIKE', $pola);
-                })->count();
+    foreach ($daftarKelas as $k) {
+        // Ambil nama kelas sebagai label sumbu X
+        $labels[] = $k->nama_kelas;
 
-            // Hitung Izin & Sakit (digabung)
-            $dataChart['izin'][] = Absensi::whereDate('tanggal', Carbon::today())
-                ->whereIn('status', ['I', 'S'])
-                ->whereHas('siswa', function($q) use ($pola) {
-                    $q->where('kelas', 'LIKE', $pola);
-                })->count();
+        // Hitung Hadir (H) per kelas hari ini
+        $dataHadir[] = Absensi::whereDate('tanggal', Carbon::today())
+            ->where('status', 'H')
+            ->whereHas('siswa', function($q) use ($k) {
+                $q->where('kelas', $k->nama_kelas);
+            })->count();
 
-            // Hitung Alpa
-            $dataChart['alpa'][] = Absensi::whereDate('tanggal', Carbon::today())
-                ->where('status', 'A')
-                ->whereHas('siswa', function($q) use ($pola) {
-                    $q->where('kelas', 'LIKE', $pola);
-                })->count();
-        }
+        // Hitung Izin & Sakit (I & S) per kelas hari ini
+        $dataIzin[] = Absensi::whereDate('tanggal', Carbon::today())
+            ->whereIn('status', ['I', 'S'])
+            ->whereHas('siswa', function($q) use ($k) {
+                $q->where('kelas', $k->nama_kelas);
+            })->count();
 
-        // Ambil jadwal hari ini
-        $jadwalHariIni = Jadwal::with(['mapel', 'guru'])
-            ->where('hari', Carbon::now()->translatedFormat('l')) 
-            ->orderBy('jam_mulai', 'asc')
-            ->get();
-
-        return view('admin.dashboard', compact(
-            'totalGuru', 'totalSiswa', 'totalMapel', 'absensiHariIni', 
-            'jadwalHariIni', 'dataChart', 'notifikasis'
-        ));
+        // Hitung Alpa (A) per kelas hari ini
+        $dataAlpa[] = Absensi::whereDate('tanggal', Carbon::today())
+            ->where('status', 'A')
+            ->whereHas('siswa', function($q) use ($k) {
+                $q->where('kelas', $k->nama_kelas);
+            })->count();
     }
+
+    // Susun array dataChart agar bisa dibaca JavaScript
+    $dataChart = [
+        'labels' => $labels,
+        'hadir'  => $dataHadir,
+        'izin'   => $dataIzin,
+        'alpa'   => $dataAlpa,
+    ];
+
+    // Ambil jadwal hari ini
+    $jadwalHariIni = Jadwal::with(['mapel', 'guru'])
+        ->where('hari', Carbon::now()->translatedFormat('l')) 
+        ->orderBy('jam_mulai', 'asc')
+        ->get();
+
+    return view('admin.dashboard', compact(
+        'totalGuru', 'totalSiswa', 'totalMapel', 'absensiHariIni', 
+        'jadwalHariIni', 'dataChart', 'notifikasis'
+    ));
+}
 
     /**
      * Manajemen Jadwal
@@ -117,7 +127,7 @@ class AdminController extends Controller
         return redirect()->back()->with('success', 'Jadwal berhasil diterbitkan!');
     }
 
-    public function destroyJadwal($id)
+    public function destroyJadwal(int $id)
     {
         Jadwal::findOrFail($id)->delete();
         return redirect()->back()->with('success', 'Jadwal berhasil dihapus!');
@@ -141,83 +151,147 @@ class AdminController extends Controller
         return view('admin.nilai', compact('siswas', 'datakelas', 'tahunAjaran'));
     }
 
-    public function cetakRaport($id)
-    {
-        $siswa = Siswa::with(['dataKelas.guru'])->findOrFail($id);
+public function cetakRaport(int $id)
+{
+    $siswa = Siswa::findOrFail($id);
+    
+    // 1. Samakan Logika Semester dengan GuruController
+    $setting = DB::table('settings')->first();
+    $semRaw = $setting->semester ?? '1';
+    $semester = ($semRaw == '1' || strtolower($semRaw) == 'ganjil') ? 'Ganjil' : 'Genap';
+    $tahun_ajaran = $setting->tahun_ajaran ?? date('Y');
 
-        $setting = DB::table('settings')->first() ?: (object)[
-            'semester' => '1',
-            'tahun_ajaran' => '2025/2026',
-            'nama_kepsek' => 'Nama Kepala Sekolah, M.Pd',
-            'nip_kepsek' => '19283746500001'
-        ];
+    // 2. Ambil data Wali Kelas
+    $kelasData = Kelas::where('nama_kelas', $siswa->kelas)->with('guru')->first();
+    $nama_wali = $kelasData->guru->nama ?? "Wali Kelas";
+    $nip_wali = $kelasData->guru->nip ?? "-";
+
+    // 3. Ambil Jadwal dan Nilai (Logika ini harus sama dengan GuruController)
+    $jadwals = Jadwal::with('mapel')->where('kelas', $siswa->kelas)->get();
+    
+    // Ambil semua record nilai siswa ini di semester ini
+    $allRecords = Nilai::where('siswa_id', $siswa->id)
+                       ->where('semester', $semester)
+                       ->get();
+
+    $dataRaport = $jadwals->map(function ($jadwal) use ($allRecords) {
+        $mapel = $jadwal->mapel->nama_mapel ?? 'Mata Pelajaran';
+        $nilaiMapel = $allRecords->where('jadwal_id', $jadwal->id);
         
-        if ($siswa->dataKelas && $siswa->dataKelas->guru) {
-            $nama_wali = $siswa->dataKelas->guru->nama;
-            $nip = $siswa->dataKelas->guru->nip;
-        } else {
-            $kelasManual = Kelas::where('nama_kelas', $siswa->kelas)->first();
-            if ($kelasManual && $kelasManual->guru) {
-                $nama_wali = $kelasManual->guru->nama;
-                $nip = $kelasManual->guru->nip;
-            } else {
-                $nama_wali = "Wali Kelas Belum Diset";
-                $nip = "-";
-            }
-        }
+        // Perhitungan Nilai Akhir (Sesuai rumus GuruController)
+        $harian = $nilaiMapel->where('jenis', 'harian')->avg('nilai') ?? 0;
+        $uts = $nilaiMapel->where('jenis', 'uts')->avg('nilai') ?? 0;
+        $uas = $nilaiMapel->where('jenis', 'uas')->avg('nilai') ?? 0;
+        
+        // Cek pembagi agar tidak bagi nol
+        $count = collect([$harian, $uts, $uas])->filter(fn($v) => $v > 0)->count();
+        $nilaiAkhir = $count > 0 ? round(($harian + $uts + $uas) / $count) : 0;
 
-        $nama_kepsek = $setting->nama_kepsek ?? 'Nama Kepala Sekolah';
-        $nip_kepsek  = $setting->nip_kepsek ?? '-';
+        // Ambil Narasi / Keterangan
+        $narasi = $nilaiMapel->whereNotNull('keterangan')
+                             ->where('keterangan', '!=', '')
+                             ->last()->keterangan ?? "Data capaian kompetensi untuk mata pelajaran $mapel belum tersedia.";
 
-        $mapels = Mapel::orderBy('nama_mapel', 'asc')->get();
-        $siswasInKelas = $this->prosesDataNilai($siswa->kelas, $mapels);
-        $currentSiswa = $siswasInKelas->where('id', $id)->first();
-
-        $dataRaport = [];
-        foreach ($mapels as $mapel) {
-            $field = "nilai_mapel_" . $mapel->id;
-            $dataRaport[] = [
-                'mapel' => $mapel->nama_mapel,
-                'akhir' => $currentSiswa->$field ?? 0
-            ];
-        }
-
-        $absensi = [
-            'sakit' => Absensi::where('siswa_id', $id)->where('status', 'S')->count(),
-            'izin'  => Absensi::where('siswa_id', $id)->where('status', 'I')->count(),
-            'alfa'  => Absensi::where('siswa_id', $id)->where('status', 'A')->count(),
+        return [
+            'mapel' => $mapel,
+            'akhir' => $nilaiAkhir > 0 ? $nilaiAkhir : '-',
+            'capaian_kompetensi' => $narasi
         ];
+    });
 
-        return view('guru.raport_pdf', compact(
-            'siswa', 'dataRaport', 'absensi', 'setting', 
-            'nama_wali', 'nip', 'nama_kepsek', 'nip_kepsek'
-        ));
-    }
+    // 4. Ambil Data Ekskul (Agar PMR muncul di Admin)
+    $eskul = $allRecords->whereIn('jenis', ['eskul', 'ekstra', 'ekstrakurikuler'])->map(function($e) {
+        $nilaiFinal = $e->predikat ?? $e->nilai ?? '-';
+        $predikatTeks = ($nilaiFinal == 'A') ? 'Sangat Baik' : (($nilaiFinal == 'B') ? 'Baik' : 'Cukup');
+        return [
+            'kegiatan' => $e->aspek, 
+            'nilai' => $nilaiFinal, 
+            'keterangan' => $e->keterangan ?? "Melaksanakan kegiatan $e->aspek dengan kualifikasi $predikatTeks."
+        ];
+    })->values();
 
-    private function prosesDataNilai($kelas, $mapels)
-    {
-        $siswas = Siswa::where('kelas', $kelas)->orderBy('nama', 'asc')->get();
-        foreach ($siswas as $siswa) {
-            $totalNilaiSiswa = 0;
-            $jumlahMapelTerhitung = 0;
+    // 5. Ambil Absensi
+    $absensi = [
+        'sakit' => Absensi::where('siswa_id', $id)->where('status', 'Sakit')->count(),
+        'izin'  => Absensi::where('siswa_id', $id)->where('status', 'Izin')->count(),
+        'alpa'  => Absensi::where('siswa_id', $id)->whereIn('status', ['Alpa', 'A'])->count(),
+    ];
 
-            foreach ($mapels as $mapel) {
-                $jadwal = Jadwal::where('mapel_id', $mapel->id)->where('kelas', $kelas)->first();
-                $akhir = 0;
-                if ($jadwal) {
-                    $nilaiData = Nilai::where('siswa_id', $siswa->id)->where('jadwal_id', $jadwal->id)->get();
+    // 6. Return ke View yang sama dengan Guru
+    return \Barryvdh\DomPDF\Facade\Pdf::loadView('guru.raport_pdf', [
+        'siswa' => $siswa,
+        'setting' => $setting,
+        'dataRaport' => $dataRaport,
+        'eskul' => $eskul,
+        'absensi' => $absensi,
+        'semester' => $semester,
+        'tahun_ajaran' => $tahun_ajaran,
+        'tgl_cetak' => now()->translatedFormat('d F Y'),
+        'nama_kepsek' => $setting->nama_kepsek ?? '-',
+        'nip_kepsek' => $setting->nip_kepsek ?? '-',
+        'nama_wali' => $nama_wali,
+        'nip' => $nip_wali,
+        'catatan_wali' => "Tingkatkan prestasimu."
+    ])->setPaper('a4', 'portrait')->stream('Raport_'.$siswa->nama.'.pdf');
+}
+
+private function prosesDataNilai($kelas, $mapels)
+{
+    $siswas = Siswa::where('kelas', $kelas)->orderBy('nama', 'asc')->get();
+    
+    // Ambil setting semester aktif dari DB
+    $setting = DB::table('settings')->first();
+    $semesterAktif = $setting->semester ?? '1'; // misal: '2' sesuai gambar
+
+    foreach ($siswas as $siswa) {
+        $totalNilaiSiswa = 0;
+        $jumlahMapelTerhitung = 0;
+
+        foreach ($mapels as $mapel) {
+            // Cari jadwal yang tepat untuk mapel di kelas ini
+            $jadwal = Jadwal::where('mapel_id', $mapel->id)
+                            ->where('kelas', $kelas)
+                            ->first();
+            
+            $akhir = 0;
+            $narasi = null;
+
+            if ($jadwal) {
+                // Ambil nilai berdasarkan siswa, jadwal, dan semester
+                $nilaiData = Nilai::where('siswa_id', $siswa->id)
+                                 ->where('jadwal_id', $jadwal->id)
+                                 ->where('semester', $semesterAktif) 
+                                 ->get();
+                
+                if ($nilaiData->count() > 0) {
                     $harian = $nilaiData->where('jenis', 'harian')->first()->nilai ?? 0;
                     $uts    = $nilaiData->where('jenis', 'uts')->first()->nilai ?? 0;
                     $uas    = $nilaiData->where('jenis', 'uas')->first()->nilai ?? 0;
+                    
                     $akhir = ($harian * 0.4) + ($uts * 0.3) + ($uas * 0.3);
+
+                    // AMBIL NARASI: Ambil dari kolom 'keterangan' yang tidak kosong
+                    $recordNarasi = $nilaiData->whereNotNull('keterangan')
+                                              ->where('keterangan', '!=', '')
+                                              ->first();
+                    
+                    $narasi = $recordNarasi ? $recordNarasi->keterangan : null;
                 }
-                $siswa->{"nilai_mapel_" . $mapel->id} = round($akhir, 2);
-                if($akhir > 0) { $totalNilaiSiswa += $akhir; $jumlahMapelTerhitung++; }
             }
-            $siswa->rata_rata_akhir = $jumlahMapelTerhitung > 0 ? round($totalNilaiSiswa / $jumlahMapelTerhitung, 2) : 0;
+
+            // Simpan ke objek siswa agar bisa dipanggil di cetakRaport
+            $siswa->{"nilai_mapel_" . $mapel->id} = round($akhir, 2);
+            $siswa->{"narasi_mapel_" . $mapel->id} = $narasi; 
+
+            if($akhir > 0) { 
+                $totalNilaiSiswa += $akhir; 
+                $jumlahMapelTerhitung++; 
+            }
         }
-        return $siswas->sortByDesc('rata_rata_akhir')->values();
+        $siswa->rata_rata_akhir = $jumlahMapelTerhitung > 0 ? round($totalNilaiSiswa / $jumlahMapelTerhitung, 2) : 0;
     }
+    return $siswas->sortByDesc('rata_rata_akhir')->values();
+}
 
     /**
      * Manajemen Absensi
@@ -239,7 +313,7 @@ class AdminController extends Controller
         return view('admin.absensi.index', compact('absensis', 'datakelas', 'tanggal'));
     }
 
-    public function updateAbsensi(Request $request, $id)
+    public function updateAbsensi(Request $request, int $id)
     {
         $request->validate([
             'status' => 'required|in:H,S,I,A',
@@ -255,7 +329,7 @@ class AdminController extends Controller
         return redirect()->back()->with('success', 'Data absensi berhasil diperbarui!');
     }
 
-    public function destroyAbsensi($id)
+    public function destroyAbsensi(int $id)
     {
         Absensi::findOrFail($id)->delete();
         return redirect()->back()->with('success', 'Data absensi berhasil dihapus!');
@@ -305,7 +379,7 @@ class AdminController extends Controller
         return view('admin.notifikasi.index', compact('notifikasis', 'kelasList'));
     }
 
-    public function destroyNotifikasi($id)
+    public function destroyNotifikasi(int $id)
     {
         Notifikasi::findOrFail($id)->delete();
         return redirect()->back()->with('success', 'Notifikasi berhasil dihapus!');

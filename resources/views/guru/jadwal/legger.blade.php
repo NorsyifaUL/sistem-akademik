@@ -12,6 +12,9 @@
             <p class="text-xs font-bold text-gray-700">{{ ($setting->semester ?? 1) == 1 ? 'Ganjil' : 'Genap' }} 2025/2026</p>
         </div>
         <div class="h-8 w-[1px] bg-gray-200 mx-2 hidden sm:block"></div>
+        <button onclick="window.print()" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-gray-50 transition-all flex items-center gap-2">
+            <i class="fas fa-print text-gray-400"></i> CETAK REKAP
+        </button>
     </div>
 </div>
 
@@ -52,14 +55,14 @@
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-100">
                 <tr class="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
-                    <th class="px-6 py-5 text-center border-r w-12">No</th>
-                    <th class="px-8 py-5 text-left border-r">Nama Lengkap Siswa</th>
-                    <th class="px-6 py-5 text-center border-r">Harian (Avg)</th>
-                    <th class="px-6 py-5 text-center border-r">UTS</th>
-                    <th class="px-6 py-5 text-center border-r">UAS</th>
-                    <th class="px-6 py-5 text-center border-r">Nilai Akhir</th>
-                    <th class="px-6 py-5 text-center border-r">Rangking</th>
-                    <th class="px-6 py-5 text-center">Status</th>
+                    <th class="px-4 py-5 text-center border-r w-12">No</th>
+                    <th class="px-6 py-5 text-left border-r w-64">Nama Siswa</th>
+                    <th class="px-4 py-5 text-center border-r bg-blue-50/30">UH</th>
+                    <th class="px-4 py-5 text-center border-r">UTS</th>
+                    <th class="px-4 py-5 text-center border-r">UAS</th>
+                    <th class="px-4 py-5 text-center border-r bg-green-50 text-green-700">Akhir</th>
+                    <th class="px-4 py-5 text-center border-r">Rank</th>
+                    <th class="px-6 py-5 text-left">Capaian Kompetensi</th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-100">
@@ -67,71 +70,72 @@
                 @php
                     $nilaiSiswa = $s->nilais->where('jadwal_id', $jadwal->id);
 
-                    // Perhitungan Nilai
-                    $skorHarian = $nilaiSiswa->where('jenis', 'harian')->pluck('nilai')->toArray();
-                    $rataHarian = count($skorHarian) > 0 ? array_sum($skorHarian) / count($skorHarian) : 0;
-                    $uts = $nilaiSiswa->where('jenis', 'uts')->first()->nilai ?? 0;
-                    $uas = $nilaiSiswa->where('jenis', 'uas')->first()->nilai ?? 0;
-                    $nilaiAkhir = ($rataHarian + $uts + $uas) > 0 ? ($rataHarian + $uts + $uas) / 3 : 0;
+                    // Ambil data nilai harian
+                    $skorUH = $nilaiSiswa->filter(function($item) {
+                        $jenisClean = strtolower(str_replace(' ', '', $item->jenis));
+                        return preg_match('/uh[1-4]/i', $jenisClean) || $jenisClean == 'harian';
+                    })->pluck('nilai')->toArray();
+
+                    $rataUH = count($skorUH) > 0 ? round(array_sum($skorUH) / count($skorUH)) : 0;
                     
+                    // UTS & UAS
+                    $utsData = $nilaiSiswa->filter(fn($n) => strtolower($n->jenis) == 'uts')->first();
+                    $uasData = $nilaiSiswa->filter(fn($n) => strtolower($n->jenis) == 'uas')->first();
+                    
+                    $uts = $utsData->nilai ?? 0;
+                    $uas = $uasData->nilai ?? 0;
+                    
+                    // Nilai Akhir Bulat
+                    $nilaiAkhir = ($rataUH + $uts + $uas) > 0 ? round(($rataUH + $uts + $uas) / 3) : 0;
+                    
+                    // Ambil Keterangan/Capaian (Prioritas dari record nilai yang ada)
+                    // Mengambil deskripsi dari tabel 'keterangan' melalui relasi model
+                    $deskripsi = $nilaiSiswa->first() && $nilaiSiswa->first()->keterangan 
+                                 ? $nilaiSiswa->first()->keterangan->deskripsi 
+                                 : '-';
+
                     $rank = $s->ranking ?? '-';
                 @endphp
                 <tr class="item-siswa hover:bg-gray-50 transition-colors group">
-                    <td class="px-6 py-5 text-center text-xs font-bold text-gray-400 border-r">{{ $index + 1 }}</td>
-                    <td class="px-8 py-5 border-r">
+                    <td class="px-4 py-5 text-center text-xs font-bold text-gray-400 border-r">{{ $index + 1 }}</td>
+                    <td class="px-6 py-5 border-r">
                         <div class="flex flex-col">
-                            <span class="nama-siswa text-sm font-black text-gray-900 uppercase tracking-tight group-hover:text-green-700 transition-colors">
+                            <span class="nama-siswa text-sm font-black text-gray-900 uppercase tracking-tight">
                                 {{ $s->nama }}
                             </span>
                             <span class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">NISN: {{ $s->nisn ?? '000000' }}</span>
                         </div>
                     </td>
                     
-                    {{-- Kolom Nilai Dibuat Seragam --}}
-                    <td class="px-6 py-5 text-center text-sm font-medium text-gray-600 border-r">
-                        {{ $rataHarian > 0 ? round($rataHarian) : '-' }}
+                    <td class="px-4 py-5 text-center text-sm font-medium border-r bg-blue-50/10">
+                        <span class="{{ $rataUH == 0 ? 'text-gray-300' : 'text-blue-600 font-bold' }}">{{ $rataUH ?: '-' }}</span>
                     </td>
-                    <td class="px-6 py-5 text-center text-sm font-medium text-gray-600 border-r">
-                        {{ $uts ?: '-' }}
-                    </td>
-                    <td class="px-6 py-5 text-center text-sm font-medium text-gray-600 border-r">
-                        {{ $uas ?: '-' }}
-                    </td>
-                    <td class="px-6 py-5 text-center text-sm font-bold text-gray-900 border-r">
-                        {{ number_format($nilaiAkhir, 2) }}
+                    <td class="px-4 py-5 text-center text-sm font-medium border-r">{{ $uts ?: '-' }}</td>
+                    <td class="px-4 py-5 text-center text-sm font-medium border-r">{{ $uas ?: '-' }}</td>
+                    <td class="px-4 py-5 text-center text-sm font-bold border-r bg-green-50/30">
+                        <span class="{{ $nilaiAkhir < 75 ? 'text-red-600' : 'text-green-700' }}">{{ $nilaiAkhir ?: '-' }}</span>
                     </td>
 
-                    <td class="px-6 py-5 text-center border-r">
-                        @if($rank == 1)
-                            <span class="text-sm font-black text-green-700 bg-green-100 px-2.5 py-1 rounded border border-green-200">1</span>
-                        @elseif($rank == 2)
-                            <span class="text-sm font-black text-blue-700 bg-blue-100 px-2.5 py-1 rounded border border-blue-200">2</span>
-                        @elseif($rank == 3)
-                            <span class="text-sm font-black text-amber-700 bg-amber-100 px-2.5 py-1 rounded border border-amber-200">3</span>
-                        @else
-                            <span class="text-xs font-bold text-gray-400">{{ $rank }}</span>
-                        @endif
+                    <td class="px-4 py-5 text-center border-r">
+                         <span class="text-xs font-bold {{ $rank <= 3 && $nilaiAkhir > 0 ? 'text-green-700' : 'text-gray-400' }}">
+                            {{ $nilaiAkhir > 0 ? $rank : '-' }}
+                         </span>
                     </td>
-                    <td class="px-6 py-5 text-center">
-                        @if($nilaiAkhir >= 75)
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                <i class="fas fa-check-circle mr-1"></i> LULUS
-                            </span>
-                        @else
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter bg-red-100 text-red-700 border border-red-200">
-                                <i class="fas fa-exclamation-triangle mr-1"></i> REMEDIAL
-                            </span>
-                        @endif
+
+                    <td class="px-6 py-5">
+                        <p class="text-[11px] leading-relaxed text-gray-600 italic font-medium">
+                            @if($nilaiAkhir > 0)
+                                <i class="fas fa-quote-left text-[8px] text-green-400 mr-1"></i>
+                                {{ $deskripsi }}
+                            @else
+                                <span class="text-gray-300">Belum ada capaian kompetensi.</span>
+                            @endif
+                        </p>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" class="px-8 py-20 text-center">
-                        <div class="flex flex-col items-center">
-                            <i class="fas fa-folder-open text-gray-200 text-5xl mb-4"></i>
-                            <p class="text-[11px] font-black text-gray-400 uppercase tracking-widest">Data nilai tidak ditemukan</p>
-                        </div>
-                    </td>
+                    <td colspan="8" class="px-8 py-20 text-center text-gray-400">Data tidak ditemukan</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -140,51 +144,18 @@
 
     <div class="bg-gray-50 px-8 py-4 border-t border-gray-200 flex items-center justify-between">
         <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-            Showing 1 to {{ $rekapData->count() }} of {{ $rekapData->count() }} entries
+            Data Terupdate: {{ date('d/m/Y H:i') }}
         </p>
-        <p class="text-[9px] text-gray-300 font-medium italic">Sistem Akademik SMANJA v.2.0</p>
+        <p class="text-[9px] text-gray-300 font-medium italic">Sistem Informasi Akademik • Politeknik Hasnur</p>
     </div>
 </div>
 
 <style>
     @media print {
-        @page { 
-            size: landscape; 
-            margin: 1.5cm; 
-        }
-
-        .print\:hidden, 
-        .main-sidebar, 
-        .main-header, 
-        .content-header,
-        footer,
-        button, 
-        select, 
-        input,
-        .border-t-4 { 
-            display: none !important; 
-        }
-
-        .bg-white { background-color: white !important; }
-        .shadow-sm, .rounded-2xl { box-shadow: none !important; border: 1px solid #d1d5db !important; }
-        
-        table { 
-            width: 100% !important; 
-            border-collapse: collapse !important;
-            font-size: 9pt !important;
-        }
-
-        th { 
-            background-color: #f3f4f6 !important; 
-            color: #374151 !important;
-            -webkit-print-color-adjust: exact; 
-        }
-
-        th, td { 
-            border: 0.5pt solid #d1d5db !important; 
-            padding: 6px !important;
-            background-color: transparent !important;
-        }
+        @page { size: landscape; margin: 0.5cm; }
+        .print\:hidden { display: none !important; }
+        table { font-size: 10px; border-collapse: collapse !important; }
+        th, td { border: 1px solid #ddd !important; padding: 4px !important; }
     }
 </style>
 

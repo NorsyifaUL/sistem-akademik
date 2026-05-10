@@ -1,18 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="space-y-6 animate-fade-in">
-    {{-- 1. Welcome Banner --}}
-    <div class="relative overflow-hidden bg-gradient-to-r from-blue-800 to-indigo-900 rounded-2xl p-8 shadow-lg">
-        <div class="relative z-10">
-            <h1 class="text-2xl font-black text-white tracking-tight">Selamat Datang, {{ auth()->user()->name }}! 👋</h1>
-            <p class="text-blue-100 text-sm mt-1 font-medium opacity-90">Panel Kendali Administrator SIAKAD SMAN 1 JEJANGKIT</p>
-        </div>
-        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
-    </div>
-
-    {{-- 2. Statistik Cards --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="p-4 space-y-5 animate-fade-in">
+    {{-- 1. Statistik Cards - Versi Standar Balanced --}}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         @php
             $stats = [
                 ['label' => 'Total Guru', 'val' => $totalGuru, 'icon' => 'fa-chalkboard-user', 'bg' => 'bg-blue-600'],
@@ -22,150 +13,121 @@
             ];
         @endphp
         @foreach($stats as $stat)
-        <div class="flex bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-24 hover:shadow-md transition-all group">
-            <div class="w-20 {{ $stat['bg'] }} flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-                <i class="fa-solid {{ $stat['icon'] }} text-3xl text-white"></i>
+        <div class="flex bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden h-20 hover:shadow-md transition-all group">
+            <div class="w-14 {{ $stat['bg'] }} flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                <i class="fa-solid {{ $stat['icon'] }} text-xl text-white"></i>
             </div>
-            <div class="flex-1 flex flex-col justify-center px-6">
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">{{ $stat['label'] }}</p>
-                <p class="text-2xl font-black text-gray-800 mt-2">{{ $stat['val'] }}</p>
+            <div class="flex-1 flex flex-col justify-center px-5">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{{ $stat['label'] }}</p>
+                <p class="text-2xl font-black text-slate-800 leading-none">{{ $stat['val'] }}</p>
             </div>
         </div>
         @endforeach
     </div>
 
-    {{-- 3. Bagian Bawah: Jadwal & Diagram --}}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {{-- 2. Bagian Bawah --}}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
-        {{-- KOLOM JADWAL BERLANGSUNG --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
-            <div class="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-                <h3 class="font-bold text-gray-800 text-[11px] uppercase tracking-widest flex items-center gap-2">
-                    <i class="fa-solid fa-clock text-blue-600"></i> Jadwal Berlangsung
+        {{-- JADWAL AKTIF - Tinggi Sedikit Dinaikkan --}}
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col overflow-hidden h-[360px]">
+            <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                <h3 class="font-black text-slate-700 text-[10px] uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-clock text-blue-600 text-xs"></i> Jadwal Aktif
                 </h3>
-                <span class="animate-pulse flex h-2 w-2 rounded-full bg-green-500"></span>
             </div>
-            <div class="p-5 flex-1 overflow-y-auto max-h-[320px] custom-scrollbar">
+            <div class="p-4 flex-1 overflow-y-auto custom-scrollbar">
                 @forelse($jadwalHariIni as $jadwal)
-                    <div class="flex items-start gap-4 p-3 rounded-xl border border-gray-50 mb-3 hover:bg-blue-50/30 transition-colors group">
-                        <div class="mt-1 h-8 w-8 bg-white shadow-sm border border-blue-100 text-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                            <i class="fa-solid fa-book-open text-[12px]"></i>
+                    <div class="flex items-center gap-4 p-3 rounded-xl border border-slate-50 mb-2 hover:bg-blue-50/50 transition-colors group">
+                        <div class="h-8 w-8 bg-white shadow-sm border border-blue-50 text-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            <i class="fa-solid fa-book-open text-[11px]"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-[11px] text-gray-800 font-bold leading-tight truncate">{{ $jadwal->mapel->nama_mapel ?? 'Mapel' }}</p>
-                            <p class="text-[10px] text-gray-500 font-medium italic mt-0.5">Kelas {{ $jadwal->relasiKelas->nama_kelas ?? $jadwal->kelas }} • {{ $jadwal->jam_mulai }}</p>
-                            <div class="flex items-center gap-1.5 mt-2">
-                                <i class="fa-solid fa-user-tie text-[9px] text-blue-400"></i>
-                                <span class="text-[9px] text-gray-400 font-bold uppercase truncate">{{ $jadwal->guru->nama ?? 'Guru' }}</span>
-                            </div>
+                            <p class="text-[11px] text-slate-800 font-black uppercase truncate leading-tight">{{ $jadwal->mapel->nama_mapel ?? 'Mapel' }}</p>
+                            <p class="text-[10px] text-slate-500 font-bold tracking-tight mt-0.5">
+                                {{ $jadwal->relasiKelas->nama_kelas ?? $jadwal->kelas }} <span class="mx-1 text-slate-300">•</span> <span class="text-blue-600">{{ $jadwal->jam_mulai }}</span>
+                            </p>
                         </div>
                     </div>
                 @empty
-                    <div class="text-center py-12">
-                        <i class="fa-solid fa-calendar-xmark text-gray-200 text-3xl mb-2"></i>
-                        <p class="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Tidak ada jadwal hari ini</p>
+                    <div class="text-center py-20">
+                        <i class="fa-solid fa-calendar-xmark text-slate-100 text-4xl mb-3"></i>
+                        <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest">Belum Ada Jadwal</p>
                     </div>
                 @endforelse
             </div>
         </div>
 
-        {{-- KOLOM DIAGRAM ABSENSI --}}
-        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-                <h3 class="font-bold text-gray-800 text-[11px] uppercase tracking-widest flex items-center gap-2">
-                    <i class="fa-solid fa-chart-bar text-emerald-600"></i> Statistik Presensi Harian
+        {{-- STATISTIK PRESENSI - Lebih Lega --}}
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-[360px]">
+            <div class="px-5 py-4 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                <h3 class="font-black text-slate-700 text-[10px] uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-chart-bar text-emerald-600 text-xs"></i> Statistik Presensi
                 </h3>
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Ringkasan Tingkat</span>
-            </div>
-            <div class="p-6">
-                <div class="h-[250px] w-full">
-                    <canvas id="barChartAbsensi"></canvas>
+                <div class="flex gap-4">
+                    @foreach(['Hadir' => 'bg-emerald-500', 'Izin' => 'bg-blue-500', 'Alpa' => 'bg-rose-500'] as $label => $color)
+                    <div class="flex items-center gap-1.5">
+                        <div class="w-2 h-2 rounded-full {{ $color }}"></div>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{{ $label }}</span>
+                    </div>
+                    @endforeach
                 </div>
-                {{-- Legend --}}
-                <div class="flex justify-center gap-6 mt-5">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
-                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Hadir</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
-                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Izin/Sakit</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
-                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Alpa</span>
-                    </div>
+            </div>
+            <div class="p-6 flex-1">
+                <div class="h-full w-full">
+                    <canvas id="barChartAbsensi"></canvas>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
-{{-- Script Chart.js --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const ctx = document.getElementById('barChartAbsensi').getContext('2d');
-        
-        // Data ini dikirim dari Controller yang menggunakan query LIKE 'X%', 'XI%', 'XII%'
-        const dataHadir = @json($dataChart['hadir'] ?? [0,0,0]);
-        const dataIzin = @json($dataChart['izin'] ?? [0,0,0]);
-        const dataAlpa = @json($dataChart['alpa'] ?? [0,0,0]);
+        const labelsKelas = @json($dataChart['labels'] ?? []);
 
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Kelas X (X1, X2)', 'Kelas XI (XI 1, 2)', 'Kelas XII (IPA/IPS)'],
+                labels: labelsKelas,
                 datasets: [
                     { 
                         label: 'Hadir', 
-                        data: dataHadir, 
+                        data: @json($dataChart['hadir'] ?? []), 
                         backgroundColor: '#10b981', 
-                        borderRadius: 6, 
-                        barThickness: 25 
+                        borderRadius: 4, 
+                        barThickness: labelsKelas.length > 5 ? 15 : 25 
                     },
                     { 
-                        label: 'Izin/Sakit', 
-                        data: dataIzin, 
+                        label: 'Izin', 
+                        data: @json($dataChart['izin'] ?? []), 
                         backgroundColor: '#3b82f6', 
-                        borderRadius: 6, 
-                        barThickness: 25 
+                        borderRadius: 4, 
+                        barThickness: labelsKelas.length > 5 ? 15 : 25 
                     },
                     { 
                         label: 'Alpa', 
-                        data: dataAlpa, 
+                        data: @json($dataChart['alpa'] ?? []), 
                         backgroundColor: '#f43f5e', 
-                        borderRadius: 6, 
-                        barThickness: 25 
+                        borderRadius: 4, 
+                        barThickness: labelsKelas.length > 5 ? 15 : 25 
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { 
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            title: function(context) {
-                                return context[0].label;
-                            }
-                        }
-                    }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
                     x: { 
                         grid: { display: false }, 
-                        ticks: { font: { size: 10, weight: 'bold' } } 
+                        ticks: { font: { size: 10, weight: 'bold' }, color: '#64748b' } 
                     },
                     y: { 
                         beginAtZero: true, 
-                        grid: { color: '#f3f4f6' }, 
-                        ticks: { 
-                            font: { size: 10 },
-                            stepSize: 1
-                        } 
+                        grid: { color: '#f1f5f9' }, 
+                        ticks: { font: { size: 10 }, color: '#94a3b8', stepSize: 5 } 
                     }
                 }
             }
@@ -174,9 +136,10 @@
 </script>
 
 <style>
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
 </style>
 @endsection

@@ -84,11 +84,24 @@ class AbsensiController extends Controller
             'mode' => $mode,
             'filter_date' => $tanggal,
             'filter_month' => $bulan,
-            'filter_semester' => $semester, // Dikirim agar dropdown tetap 'selected'
+            'filter_semester' => $semester,
             'filter_tahun' => $tahun_ajaran,
             'months' => $months,
             'filterKelas' => $filterKelas
         ]);
+    }
+
+    /**
+     * Menampilkan form edit presensi
+     * Ditambahkan untuk memperbaiki BadMethodCallException
+     */
+    public function edit(int $id)
+    {
+        $absensi = Absensi::with('siswa')->findOrFail($id);
+        
+        // Anda bisa mengarahkan ke halaman edit khusus 
+        // atau jika menggunakan Modal, pastikan ID ini dilempar dengan benar
+        return view('admin.absensi.edit', compact('absensi'));
     }
 
     /**
@@ -97,7 +110,7 @@ class AbsensiController extends Controller
     public function update(Request $request, int $id)
     {
         $request->validate([
-            'status' => 'required|in:Hadir,Sakit,Izin,Alpa',
+            'status' => 'required|in:Hadir,Sakit,Izin,Alpa,H,S,I,A',
             'keterangan' => 'nullable|string|max:255'
         ]);
 
@@ -107,7 +120,7 @@ class AbsensiController extends Controller
             'keterangan' => $request->keterangan
         ]);
 
-        return redirect()->back()->with('success', 'Data presensi berhasil dikoreksi.');
+        return redirect()->route('admin.absensi.index')->with('success', 'Data presensi berhasil dikoreksi.');
     }
 
     /**
@@ -130,7 +143,6 @@ class AbsensiController extends Controller
             $query->whereDate('created_at', $tanggal);
         }
 
-        // Filter semester di PDF disamakan dengan index
         if ($semester == '1') {
             $query->whereMonth('created_at', '>=', '07')->whereMonth('created_at', '<=', '12');
         } else {

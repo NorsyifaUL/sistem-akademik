@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Keterangan;
 
 class Nilai extends Model
 {
@@ -40,5 +41,11 @@ class Nilai extends Model
     public function mapel() 
     {
         return $this->belongsTo(Mapel::class, 'mapel_id');
+    }
+
+    public function keterangan()
+    {
+        // Asumsi: tabel 'keterangan' punya kolom 'nilai_id' sebagai foreign key
+        return $this->hasOne(Keterangan::class, 'nilai_id');
     }
 }

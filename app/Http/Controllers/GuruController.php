@@ -16,7 +16,7 @@ use Carbon\Carbon;
 class GuruController extends Controller
 {
     /**
-     * Helper untuk data dashboard (Sapaan & Hari Indo).
+     * Helper untuk data dashboard & konversi semester
      */
     private function getDashboardData()
     {
@@ -31,9 +31,15 @@ class GuruController extends Controller
             'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'
         ];
         
+        $setting = Setting::first();
+        $semRaw = $setting->semester ?? '1';
+        $semesterAktif = ($semRaw == '1' || strtolower($semRaw) == 'ganjil') ? 'Ganjil' : 'Genap';
+
         return [
             'sapaan' => $sapaan,
-            'hari_ini' => $hariIndo[date('l')] ?? 'Senin'
+            'hari_ini' => $hariIndo[date('l')] ?? 'Senin',
+            'semester_aktif' => $semesterAktif,
+            'tahun_ajaran' => $setting->tahun_ajaran ?? date('Y')
         ];
     }
 
@@ -81,6 +87,7 @@ class GuruController extends Controller
             ->latest('updated_at')
             ->take(5)
             ->get();
+            
         $setting = Setting::first();
 
         return view('guru.dashboard', array_merge($meta, compact(
@@ -92,88 +99,85 @@ class GuruController extends Controller
     | MANAJEMEN NILAI & REKAP (LEGGER)
     |--------------------------------------------------------------------------
     */
-public function lihatNilaiSiswa(Request $request)
-{
-    $user = Auth::user();
-    $guru = $user->guru;
-    $setting = Setting::first();
-    $jadwals = Jadwal::where('guru_id', $guru->id)->with(['mapel'])->get();
-    
-    $jadwalId = $request->jadwal_id;
-    $jenisNilai = $request->jenis_nilai; 
-    $siswaData = collect();
-    $jadwalTerpilih = null;
-
-    if ($jadwalId) {
-        $jadwalTerpilih = Jadwal::with('mapel')->findOrFail($jadwalId);
-        $siswas = Siswa::where('kelas', $jadwalTerpilih->kelas)->orderBy('nama', 'asc')->get();
-
-        $siswaData = $siswas->map(function($s) use ($jadwalId, $jenisNilai) {
-            $nilais = Nilai::where('siswa_id', $s->id)
-                           ->where('jadwal_id', $jadwalId)
-                           ->get();
-
-            // 1. Ambil Nilai UH Spesifik
-            $uh1 = $nilais->where('jenis', 'harian')->filter(fn($n) => strtolower($n->aspek) == 'uh1')->first()->nilai ?? null;
-            $uh2 = $nilais->where('jenis', 'harian')->filter(fn($n) => strtolower($n->aspek) == 'uh2')->first()->nilai ?? null;
-            $uh3 = $nilais->where('jenis', 'harian')->filter(fn($n) => strtolower($n->aspek) == 'uh3')->first()->nilai ?? null;
-            $uh4 = $nilais->where('jenis', 'harian')->filter(fn($n) => strtolower($n->aspek) == 'uh4')->first()->nilai ?? null;
-
-            // 2. Ambil UTS & UAS
-            $uts = $nilais->filter(fn($n) => strtolower($n->jenis) == 'uts')->first()->nilai ?? 0;
-            $uas = $nilais->filter(fn($n) => strtolower($n->jenis) == 'uas')->first()->nilai ?? 0;
-
-            // 3. Rata-rata Harian
-            $semuaHarian = $nilais->filter(fn($n) => in_array(strtolower($n->jenis), ['harian', 'tugas', 'ulangan_bab']));
-            $rataHarian = $semuaHarian->count() > 0 ? $semuaHarian->avg('nilai') : 0;
-
-            // 4. Nilai Akhir
-            $nilaiKomponen = collect([$rataHarian, $uts, $uas])->filter(fn($v) => $v > 0);
-            $pembagi = $nilaiKomponen->count();
-            $akhir = $pembagi > 0 ? round($nilaiKomponen->sum() / $pembagi) : 0;
-
-            // 5. Nilai Existing
-            $nilaiExisting = null;
-            if ($jenisNilai) {
-                $findExisting = $nilais->filter(fn($n) => strtolower($n->jenis) == strtolower($jenisNilai))->first();
-                $nilaiExisting = $findExisting ? $findExisting->nilai : null;
-            }
-
-            return (object)[
-                'id' => $s->id, 
-                'nama' => $s->nama, 
-                'uh1' => $uh1, 
-                'uh2' => $uh2, 
-                'uh3' => $uh3, 
-                'uh4' => $uh4,
-                'harian' => round($rataHarian), 
-                'uts' => $uts, 
-                'uas' => $uas,
-                'akhir' => $akhir,
-                'nilai_existing' => $nilaiExisting,
-                'predikat' => ($akhir >= 85 ? 'A' : ($akhir >= 75 ? 'B' : ($akhir > 0 ? 'C' : '-')))
-            ];
-        });
- 
-
-    return view('guru.nilai.manajemen', compact('jadwals', 'siswaData', 'jadwalTerpilih', 'setting', 'user'));
-}
+    public function lihatNilaiSiswa(Request $request)
+    {
+        $user = Auth::user();
+        $guru = $user->guru;
+        $meta = $this->getDashboardData();
+        $semester = $meta['semester_aktif'];
         
-        return view('guru.nilai.manajemen', compact('jadwals', 'siswaData', 'jadwalTerpilih', 'setting', 'user'));
+        $setting = Setting::first();
+        $jadwals = Jadwal::where('guru_id', $guru->id)->with(['mapel'])->get();
+        
+        $jadwalId = $request->jadwal_id;
+        $jenisNilai = $request->jenis_nilai; 
+        $siswaData = collect();
+        $jadwalTerpilih = null;
+
+        if ($jadwalId) {
+            $jadwalTerpilih = Jadwal::with('mapel')->findOrFail($jadwalId);
+            $siswas = Siswa::where('kelas', $jadwalTerpilih->kelas)->orderBy('nama', 'asc')->get();
+
+            $siswaData = $siswas->map(function($s) use ($jadwalId, $jenisNilai, $semester) {
+                $nilais = Nilai::where('siswa_id', $s->id)
+                               ->where('jadwal_id', $jadwalId)
+                               ->where('semester', $semester) // Filter semester aktif
+                               ->get();
+
+                $uh1 = $nilais->where('jenis', 'harian')->filter(fn($n) => strtolower($n->aspek) == 'uh1')->first()->nilai ?? null;
+                $uh2 = $nilais->where('jenis', 'harian')->filter(fn($n) => strtolower($n->aspek) == 'uh2')->first()->nilai ?? null;
+                $uh3 = $nilais->where('jenis', 'harian')->filter(fn($n) => strtolower($n->aspek) == 'uh3')->first()->nilai ?? null;
+                $uh4 = $nilais->where('jenis', 'harian')->filter(fn($n) => strtolower($n->aspek) == 'uh4')->first()->nilai ?? null;
+
+                $uts = $nilais->filter(fn($n) => strtolower($n->jenis) == 'uts')->first()->nilai ?? 0;
+                $uas = $nilais->filter(fn($n) => strtolower($n->jenis) == 'uas')->first()->nilai ?? 0;
+
+                $semuaHarian = $nilais->filter(fn($n) => in_array(strtolower($n->jenis), ['harian', 'tugas', 'ulangan_bab']));
+                $rataHarian = $semuaHarian->count() > 0 ? $semuaHarian->avg('nilai') : 0;
+
+                $nilaiKomponen = collect([$rataHarian, $uts, $uas])->filter(fn($v) => $v > 0);
+                $pembagi = $nilaiKomponen->count();
+                $akhir = $pembagi > 0 ? round($nilaiKomponen->sum() / $pembagi) : 0;
+
+                $nilaiExisting = null;
+                if ($jenisNilai) {
+                    $findExisting = $nilais->filter(fn($n) => strtolower($n->jenis) == strtolower($jenisNilai))->first();
+                    $nilaiExisting = $findExisting ? $findExisting->nilai : null;
+                }
+
+                return (object)[
+                    'id' => $s->id, 
+                    'nama' => $s->nama, 
+                    'uh1' => $uh1, 
+                    'uh2' => $uh2, 
+                    'uh3' => $uh3, 
+                    'uh4' => $uh4,
+                    'harian' => round($rataHarian), 
+                    'uts' => $uts, 
+                    'uas' => $uas,
+                    'akhir' => $akhir,
+                    'nilai_existing' => $nilaiExisting,
+                    'predikat' => ($akhir >= 85 ? 'A' : ($akhir >= 75 ? 'B' : ($akhir > 0 ? 'C' : '-')))
+                ];
+            });
+        }
+
+        return view('guru.nilai.manajemen', compact('jadwals', 'siswaData', 'jadwalTerpilih', 'setting', 'user', 'semester'));
     }
+
     public function simpanNilaiMassal(Request $request)
     {
-        // Tambahkan 'aspek' dalam validasi jika diperlukan
         $request->validate([
             'jadwal_id' => 'required', 
             'jenis' => 'required', 
             'nilai' => 'required|array'
         ]);
         
-        $semester = Setting::first()->semester ?? '1'; 
+        $meta = $this->getDashboardData();
+        $semester = $meta['semester_aktif'];
+        $tahun_ajaran = $meta['tahun_ajaran'];
 
         foreach ($request->nilai as $siswaId => $dataAspek) {
-            // Cek jika $dataAspek adalah array (artinya ada uh1, uh2, dll)
             if (is_array($dataAspek)) {
                 foreach ($dataAspek as $aspek => $skor) {
                     if ($skor !== null && $skor !== '') {
@@ -182,15 +186,18 @@ public function lihatNilaiSiswa(Request $request)
                                 'siswa_id'  => $siswaId, 
                                 'jadwal_id' => $request->jadwal_id, 
                                 'jenis'     => $request->jenis, 
-                                'aspek'     => $aspek, // PENTING: Pembeda UH1, UH2, dll
+                                'aspek'     => $aspek,
                                 'semester'  => $semester
                             ],
-                            ['nilai' => $skor, 'updated_at' => now()]
+                            [
+                                'nilai' => $skor, 
+                                'tahun_ajaran' => $tahun_ajaran,
+                                'updated_at' => now()
+                            ]
                         );
                     }
                 }
             } else {
-                // Ini untuk handle jika input nilai bukan array (misal UTS/UAS tunggal)
                 if ($dataAspek !== null && $dataAspek !== '') {
                     Nilai::updateOrCreate(
                         [
@@ -199,14 +206,19 @@ public function lihatNilaiSiswa(Request $request)
                             'jenis'     => $request->jenis,
                             'semester'  => $semester
                         ],
-                        ['nilai' => $dataAspek, 'updated_at' => now()]
+                        [
+                            'nilai' => $dataAspek, 
+                            'tahun_ajaran' => $tahun_ajaran,
+                            'updated_at' => now()
+                        ]
                     );
                 }
             }
         }
         
-        return redirect()->back()->with('success', 'Nilai berhasil diperbarui sesuai kolom!');
+        return redirect()->back()->with('success', 'Nilai semester ' . $semester . ' berhasil diperbarui!');
     }
+
     /*
     |--------------------------------------------------------------------------
     | ABSENSI & NOTIFIKASI WA (FONNTE)
@@ -221,41 +233,22 @@ public function lihatNilaiSiswa(Request $request)
         return view('guru.absensi.index', compact('jadwals', 'hari_ini'));
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | TAMPILKAN FORM ABSENSI
-    |--------------------------------------------------------------------------
-    */
     public function formAbsensi(Request $request, int $jadwalId)
     {
         $guru = Auth::user()->guru;
-        
-        // Memastikan jadwal tersebut memang milik guru yang sedang login
         $jadwal = Jadwal::where('id', $jadwalId)->where('guru_id', $guru->id)->firstOrFail();
-        
         $tanggal = $request->tanggal ?? date('Y-m-d');
-        
-        // Ambil daftar siswa di kelas tersebut
         $siswa = Siswa::where('kelas', $jadwal->kelas)->orderBy('nama', 'asc')->get();
-        
-        // Ambil data absen yang mungkin sudah diisi sebelumnya pada tanggal tersebut
-        $sudah_absen = Absensi::where('jadwal_id', $jadwalId)
-                            ->whereDate('tanggal', $tanggal)
-                            ->get()
-                            ->keyBy('siswa_id');
+        $sudah_absen = Absensi::where('jadwal_id', $jadwalId)->whereDate('tanggal', $tanggal)->get()->keyBy('siswa_id');
 
         return view('guru.absensi.form', compact('jadwal', 'siswa', 'sudah_absen', 'tanggal'));
     }
 
- public function simpanAbsensi(Request $request)
+    public function simpanAbsensi(Request $request)
     {
-        $request->validate([
-            'jadwal_id' => 'required', 
-            'tanggal'   => 'required|date', 
-            'status'    => 'required|array'
-        ]);
+        $request->validate(['jadwal_id' => 'required', 'tanggal' => 'required|date', 'status' => 'required|array']);
         
-        if ($request->tanggal !== \Carbon\Carbon::today()->format('Y-m-d')) {
+        if ($request->tanggal !== Carbon::today()->format('Y-m-d')) {
             return redirect()->back()->with('error', 'Absensi hanya diperbolehkan untuk hari ini.');
         }
 
@@ -264,121 +257,69 @@ public function lihatNilaiSiswa(Request $request)
         foreach ($request->status as $siswaId => $status) {
             $statusMap = ['A' => 'Alpa', 'H' => 'Hadir', 'S' => 'Sakit', 'I' => 'Izin'];
             $statusFix = $statusMap[strtoupper($status)] ?? $status;
-
             $target_siswa = Siswa::find($siswaId);
             $status_wa = null;
             
-            // 1. KIRIM WA (Hanya jika status Alpa)
             if ($statusFix == 'Alpa' && $target_siswa && $target_siswa->no_wa_ortu) {
                 $status_wa = $this->kirimNotifWA($target_siswa, $jadwal, $request->tanggal);
             }
 
-            // 2. SIMPAN DATA ABSENSI KE TABEL ABSENSIS
             $absen = Absensi::updateOrCreate(
                 ['jadwal_id' => $request->jadwal_id, 'siswa_id' => $siswaId, 'tanggal' => $request->tanggal],
                 ['status' => $statusFix, 'status_wa' => $status_wa, 'updated_at' => now()]
             );
 
-            // 3. LOG UNTUK ADMIN (HANYA JIKA STATUS ALPA)
             if ($statusFix == 'Alpa') {
                 $admin = \App\Models\User::where('role', 'admin')->first();
                 if ($admin && $target_siswa) {
-                    
-                    // SESUAIKAN DENGAN ENUM DATABASE: 'Terkirim' atau 'Gagal'
                     $statusLogAdmin = ($status_wa == 'sent') ? 'Terkirim' : 'Gagal';
-
                     \App\Models\Notifikasi::create([
-                        'user_id'      => $admin->id,
-                        'absensi_id'   => $absen->id,
-                        'tanggal'      => now(),
-                        'kelas'        => $target_siswa->kelas, 
-                        'isi_pesan'    => "LOG: Siswa {$target_siswa->nama} (Kelas {$target_siswa->kelas}) ALPA pada Mapel {$jadwal->mapel->nama_mapel}",
+                        'user_id' => $admin->id,
+                        'absensi_id' => $absen->id,
+                        'tanggal' => now(),
+                        'kelas' => $target_siswa->kelas, 
+                        'isi_pesan' => "LOG: Siswa {$target_siswa->nama} (Kelas {$target_siswa->kelas}) ALPA pada Mapel {$jadwal->mapel->nama_mapel}",
                         'status_kirim' => $statusLogAdmin, 
                     ]);
                 }
             }
         }
-        
         return redirect()->route('guru.absensi.index')->with('success', 'Presensi berhasil disimpan!');
     }
-    /*
-    |--------------------------------------------------------------------------
-    | REKAP ABSENSI (RIWAYAT)
-    |--------------------------------------------------------------------------
-    */
+
     public function indexRekapAbsensi(Request $request)
     {
         $user = Auth::user();
         $guru = $user->guru;
-        
-        // --- 1. Ambil daftar jadwal (untuk filter Mapel) ---
         $jadwals = Jadwal::where('guru_id', $guru->id)->with('mapel')->get();
+        $kelasList = Jadwal::where('guru_id', $guru->id)->select('kelas')->distinct()->get();
 
-        // --- 2. Ambil daftar KELAS yang diajar oleh guru ini (untuk variabel $kelasList) ---
-        $kelasList = Jadwal::where('guru_id', $guru->id)
-                    ->select('kelas')
-                    ->distinct()
-                    ->get();
-
-        // Ambil data filter dari request
         $jadwalId = $request->jadwal_id;
-        $kelasFilter = $request->kelas; // Filter kelas
+        $kelasFilter = $request->kelas;
         $tanggalMulai = $request->tanggal_mulai ?? Carbon::now()->startOfMonth()->format('Y-m-d');
         $tanggalSelesai = $request->tanggal_selesai ?? Carbon::now()->format('Y-m-d');
 
-        // --- 3. Query riwayat absensi dengan filter ---
-        $query = Absensi::whereHas('jadwal', function($q) use ($guru) {
-                    $q->where('guru_id', $guru->id);
-                })
+        $query = Absensi::whereHas('jadwal', function($q) use ($guru) { $q->where('guru_id', $guru->id); })
                 ->with(['siswa', 'jadwal.mapel'])
                 ->whereBetween('tanggal', [$tanggalMulai, $tanggalSelesai]);
 
-        // Filter berdasarkan Jadwal/Mapel jika dipilih
-        if ($jadwalId) {
-            $query->where('jadwal_id', $jadwalId);
-        }
-
-        // Filter berdasarkan Kelas jika dipilih
-        if ($kelasFilter) {
-            $query->whereHas('siswa', function($q) use ($kelasFilter) {
-                $q->where('kelas', $kelasFilter);
-            });
-        }
+        if ($jadwalId) $query->where('jadwal_id', $jadwalId);
+        if ($kelasFilter) $query->whereHas('siswa', function($q) use ($kelasFilter) { $q->where('kelas', $kelasFilter); });
 
         $rekapAbsensi = $query->latest('tanggal')->get();
-
-        // Nama variabel di dalam compact harus 'rekaps' agar sesuai dengan @forelse($rekaps ...) di Blade
-        return view('guru.absensi.rekap', compact(
-            'jadwals', 
-            'kelasList', 
-            'tanggalMulai', 
-            'tanggalSelesai', 
-            'jadwalId'
-        ))->with('rekaps', $rekapAbsensi); // Kita gunakan ->with('rekaps') supaya pasti terbaca
+        return view('guru.absensi.rekap', compact('jadwals', 'kelasList', 'tanggalMulai', 'tanggalSelesai', 'jadwalId'))->with('rekaps', $rekapAbsensi);
     }
 
-private function kirimNotifWA(Siswa $siswa, Jadwal $jadwal, string $tanggal)
+    private function kirimNotifWA(Siswa $siswa, Jadwal $jadwal, string $tanggal)
     {
         $token = env('FONNTE_TOKEN', 'CKW3RDixtZqdnn4k5hkP'); 
-        
-        // --- TAMBAHAN: NORMALISASI NOMOR (Penting agar tidak failed) ---
         $target = $siswa->no_wa_ortu;
-        $target = str_replace([' ', '-', '.', '+'], '', $target); // Hapus karakter aneh
-        if (substr($target, 0, 1) === '0') {
-            $target = '62' . substr($target, 1);
-        } elseif (substr($target, 0, 2) !== '62') {
-            $target = '62' . $target;
-        }
+        $target = str_replace([' ', '-', '.', '+'], '', $target);
+        if (substr($target, 0, 1) === '0') $target = '62' . substr($target, 1);
+        elseif (substr($target, 0, 2) !== '62') $target = '62' . $target;
 
         $tglFormat = Carbon::parse($tanggal)->translatedFormat('d F Y');
-        
-        $pesan = "🔔 *PEMBERITAHUAN ABSENSI SMANJA*\n\n" .
-                 "Kepada Yth. Orang Tua/Wali dari:\n" .
-                 "Siswa: *{$siswa->nama}*\n" .
-                 "Status: *ALPA (Tidak Hadir)*\n" .
-                 "Mapel: " . ($jadwal->mapel->nama_mapel ?? 'Mata Pelajaran') . "\n" .
-                 "Tanggal: {$tglFormat}\n\n" .
-                 "_Mohon bapak/ibu dapat memberikan keterangan terkait ketidakhadiran putra/putrinya. Terima kasih._";
+        $pesan = "🔔 *PEMBERITAHUAN ABSENSI SMANJA*\n\nKepada Yth. Orang Tua/Wali dari:\nSiswa: *{$siswa->nama}*\nStatus: *ALPA (Tidak Hadir)*\nMapel: " . ($jadwal->mapel->nama_mapel ?? 'Mata Pelajaran') . "\nTanggal: {$tglFormat}\n\n_Mohon bapak/ibu dapat memberikan keterangan terkait ketidakhadiran putra/putrinya. Terima kasih._";
 
         $curl = curl_init();
         curl_setopt_array($curl, array(
@@ -389,26 +330,15 @@ private function kirimNotifWA(Siswa $siswa, Jadwal $jadwal, string $tanggal)
             CURLOPT_HTTPHEADER => array("Authorization: $token"),
             CURLOPT_SSL_VERIFYPEER => false,
         ));
-        
         $response = curl_exec($curl);
-        
         if(curl_errno($curl)){
             Log::error("Fonnte Error: " . curl_error($curl));
             curl_close($curl);
             return 'failed'; 
         }
-        
         curl_close($curl);
-
         $resArray = json_decode($response, true);
-        
-        // Pastikan mengecek status dari Fonnte dengan benar
-        if (isset($resArray['status']) && $resArray['status'] == true) {
-            return 'sent';
-        }
-
-        Log::warning("Fonnte Gagal Dikirim: " . $response); // Agar kamu bisa cek di storage/logs/laravel.log
-        return 'failed';
+        return (isset($resArray['status']) && $resArray['status'] == true) ? 'sent' : 'failed';
     }
 
     /*
@@ -417,88 +347,83 @@ private function kirimNotifWA(Siswa $siswa, Jadwal $jadwal, string $tanggal)
     |--------------------------------------------------------------------------
     */
 public function cetakRaport(int $id)
-{
-    $user = Auth::user();
-    $siswa = Siswa::findOrFail($id);
-    $setting = Setting::first() ?? new Setting();
+    {
+        $user = Auth::user();
+        $siswa = Siswa::findOrFail($id);
+        $meta = $this->getDashboardData();
+        $semester = $meta['semester_aktif']; // Menggunakan "Ganjil" atau "Genap" agar selaras
+        $tahun_ajaran = $meta['tahun_ajaran'];
+        $setting = Setting::first() ?? new Setting();
 
-    // 1. Ambil SEMUA Jadwal Pelajaran (Agar Mapel tanpa nilai tetap muncul di tabel)
-    $jadwals = \App\Models\Jadwal::with('mapel')
-        ->where('kelas', $siswa->kelas)
-        ->get();
-
-    // 2. Ambil semua data nilai siswa
-    $allRecords = Nilai::where('siswa_id', $siswa->id)->get();
-
-    // 3. Olah Data Nilai Akademik
-    $dataRaport = $jadwals->map(function ($jadwal) use ($allRecords) {
-        $mapel = $jadwal->mapel->nama_mapel ?? 'Mata Pelajaran';
-        $nilaiMapel = $allRecords->where('jadwal_id', $jadwal->id);
+        $jadwals = Jadwal::with('mapel')->where('kelas', $siswa->kelas)->get();
         
-        $harian = $nilaiMapel->where('jenis', 'harian')->avg('nilai') ?? 0;
-        $uts = $nilaiMapel->where('jenis', 'uts')->avg('nilai') ?? 0;
-        $uas = $nilaiMapel->where('jenis', 'uas')->avg('nilai') ?? 0;
+        // Filter nilai berdasarkan semester aktif
+        $allRecords = Nilai::where('siswa_id', $siswa->id)
+                           ->where('semester', $semester)
+                           ->get();
+
+        $dataRaport = $jadwals->map(function ($jadwal) use ($allRecords) {
+            $mapel = $jadwal->mapel->nama_mapel ?? 'Mata Pelajaran';
+            $nilaiMapel = $allRecords->where('jadwal_id', $jadwal->id);
+            
+            // Perhitungan Nilai Akhir
+            $harian = $nilaiMapel->where('jenis', 'harian')->avg('nilai') ?? 0;
+            $uts = $nilaiMapel->where('jenis', 'uts')->avg('nilai') ?? 0;
+            $uas = $nilaiMapel->where('jenis', 'uas')->avg('nilai') ?? 0;
+            $nilaiAkhir = round(($harian + $uts + $uas) / 3);
+
+            /**
+             * MENGAMBIL CAPAIAN KOMPETENSI DARI DATABASE
+             * Mengambil string dari kolom 'keterangan' di tabel nilais.
+             * Menggunakan last() untuk mengambil inputan terbaru jika ada beberapa entri.
+             */
+            $narasi = $nilaiMapel->whereNotNull('keterangan')
+                                 ->where('keterangan', '!=', '')
+                                 ->last()->keterangan ?? "Data capaian kompetensi untuk mata pelajaran $mapel belum tersedia.";
+
+            return [
+                'mapel' => $mapel, 
+                'akhir' => $nilaiAkhir > 0 ? $nilaiAkhir : '-', 
+                'capaian_kompetensi' => $narasi
+            ];
+        });
+
+        $dataSikap = $allRecords->where('jenis', 'sikap')->values();
         
-        $nilaiAkhir = round(($harian + $uts + $uas) / 3);
-
-        if ($nilaiAkhir >= 90) {
-            $narasi = "Menunjukkan penguasaan kompetensi yang sangat luar biasa dalam memahami materi $mapel. Siswa mampu menganalisis konsep secara mendalam dan kritis.";
-        } elseif ($nilaiAkhir >= 75) {
-            $narasi = "Menunjukkan penguasaan kompetensi yang baik pada mata pelajaran $mapel. Siswa mampu memahami konsep-konsep inti dengan benar.";
-        } elseif ($nilaiAkhir > 0) {
-            $narasi = "Telah mencapai kriteria minimum namun memerlukan pendampingan pada beberapa kompetensi $mapel.";
-        } else {
-            $narasi = "Data nilai untuk mata pelajaran $mapel belum tersedia.";
-        }
-
-        return [
-            'mapel' => $mapel, 
-            'akhir' => $nilaiAkhir > 0 ? $nilaiAkhir : '-', 
-            'capaian_kompetensi' => $narasi 
+        $eskul = $allRecords->whereIn('jenis', ['eskul', 'ekstra', 'ekstrakurikuler'])->map(function($e) {
+            $nilaiFinal = $e->predikat ?? $e->nilai ?? '-';
+            $predikatTeks = ($nilaiFinal == 'A') ? 'Sangat Baik' : (($nilaiFinal == 'B') ? 'Baik' : 'Cukup');
+            return [
+                'kegiatan' => $e->aspek, 
+                'nilai' => $nilaiFinal, 
+                'keterangan' => $e->keterangan ?? "Melaksanakan kegiatan $e->aspek dengan kualifikasi $predikatTeks."
+            ];
+        })->values();
+        
+        $absensi = [
+            'sakit' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Sakit')->count(),
+            'izin'  => Absensi::where('siswa_id', $siswa->id)->where('status', 'Izin')->count(),
+            'alpa'  => Absensi::where('siswa_id', $siswa->id)->whereIn('status', ['Alpa', 'A'])->count(),
         ];
-    });
 
-    // 4. Olah Data Sikap
-    $dataSikap = $allRecords->where('jenis', 'sikap')->values();
-
-    // 5. Olah Data Eskul (PENTING: Jenis disamakan dengan fungsi storeEskul)
-    $eskul = $allRecords->whereIn('jenis', ['eskul', 'ekstra', 'ekstrakurikuler'])->map(function($e) {
-        // Ambil predikat dari kolom 'predikat', jika kosong ambil dari kolom 'nilai'
-        $nilaiFinal = $e->predikat ?? $e->nilai ?? '-';
-        
-        // Menentukan teks keterangan otomatis jika kolom keterangan kosong
-        $predikatTeks = ($nilaiFinal == 'A') ? 'Sangat Baik' : (($nilaiFinal == 'B') ? 'Baik' : 'Cukup');
-        
-        return [
-            'kegiatan'   => $e->aspek, 
-            'nilai'      => $nilaiFinal, 
-            'keterangan' => $e->keterangan ?? "Melaksanakan kegiatan $e->aspek dengan kualifikasi $predikatTeks."
-        ];
-    })->values();
-    
-    // 6. Olah Data Absensi (Gunakan sum agar akurat)
-    $absensi = [
-        'sakit' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Sakit')->count(),
-        'izin'  => Absensi::where('siswa_id', $siswa->id)->where('status', 'Izin')->count(),
-        'alfa'  => Absensi::where('siswa_id', $siswa->id)->whereIn('status', ['Alpa', 'A'])->count(),
-    ];
-
-    // 7. Variabel Pendukung
-    $semester = ($setting->semester == '1') ? '1 (Ganjil)' : '2 (Genap)';
-    $tahun_ajaran = $setting->tahun_ajaran ?? '2025/2026';
-    $tgl_cetak = now()->translatedFormat('d F Y');
-    $nama_kepsek = $setting->nama_kepsek ?? 'Nama Kepala Sekolah';
-    $nip_kepsek  = $setting->nip_kepsek  ?? 'NIP Kepala Sekolah';
-    $nama_wali   = $user->name;
-    $nip         = $user->nip ?? '-';
-    $catatan_wali = ($dataSikap->isNotEmpty()) ? $dataSikap->first()->keterangan : 'Pertahankan prestasi dan tetap semangat belajar.';
-
-    return Pdf::loadView('guru.raport_pdf', compact(
-        'siswa', 'setting', 'user', 'dataRaport', 'dataSikap', 'eskul',
-        'absensi', 'semester', 'tahun_ajaran', 'tgl_cetak', 'nama_kepsek', 
-        'nip_kepsek', 'nama_wali', 'nip', 'catatan_wali'
-    ))->setPaper('a4', 'portrait')->stream('Raport_'.$siswa->nama.'.pdf');
-}   /*
+        return Pdf::loadView('guru.raport_pdf', [
+            'siswa' => $siswa, 
+            'setting' => $setting, 
+            'user' => $user, 
+            'dataRaport' => $dataRaport, 
+            'dataSikap' => $dataSikap, 
+            'eskul' => $eskul, 
+            'absensi' => $absensi, 
+            'semester' => $semester,
+            'tahun_ajaran' => $tahun_ajaran, 
+            'tgl_cetak' => now()->translatedFormat('d F Y'),
+            'nama_kepsek' => $setting->nama_kepsek, 
+            'nip_kepsek' => $setting->nip_kepsek, 
+            'nama_wali' => $user->name,
+            'nip' => $user->nip ?? '-', 
+            'catatan_wali' => $dataSikap->first()->keterangan ?? 'Tingkatkan prestasimu.'
+        ])->setPaper('a4', 'portrait')->stream('Raport_'.$siswa->nama.'.pdf');
+    }    /*
     |--------------------------------------------------------------------------
     | INPUT SIKAP & ESKUL
     |--------------------------------------------------------------------------
@@ -506,39 +431,39 @@ public function cetakRaport(int $id)
     public function inputSikap(int $id)
     {
         $siswa = Siswa::findOrFail($id);
-        $setting = Setting::first();
-        $tahunAjaran = $setting->tahun_ajaran ?? '2025/2026';
+        $meta = $this->getDashboardData();
+        $semester = $meta['semester_aktif'];
+        
         $nilaiSikap = Nilai::where('siswa_id', $id)
-                        ->where('jenis', 'sikap')
-                        ->where('tahun_ajaran', $tahunAjaran)
-                        ->get();
-
-        return view('guru.nilai_sikap_input', compact('siswa', 'setting', 'nilaiSikap'));
+                           ->where('jenis', 'sikap')
+                           ->where('semester', $semester)
+                           ->get();
+                           
+        return view('guru.nilai_sikap_input', compact('siswa', 'semester', 'nilaiSikap'));
     }
 
     public function inputEskul(int $id)
     {
         $siswa = Siswa::findOrFail($id);
-        $setting = Setting::first();
+        $meta = $this->getDashboardData();
+        $semester = $meta['semester_aktif'];
+        
         $nilaiEskul = Nilai::where('siswa_id', $id)
-            ->where('jenis', 'ekstra')
-            ->where('tahun_ajaran', $setting->tahun_ajaran ?? '2025/2026')
-            ->where('semester', $setting->semester ?? 'Ganjil')
-            ->get();
+                           ->where('jenis', 'ekstra')
+                           ->where('semester', $semester)
+                           ->get();
 
-        return view('guru.nilai_eskul_input', compact('siswa', 'setting', 'nilaiEskul'));
+        return view('guru.nilai_eskul_input', compact('siswa', 'semester', 'nilaiEskul'));
     }
 
     public function storeSikap(Request $request)
     {
         $request->validate(['siswa_id' => 'required', 'aspek' => 'required', 'nilai' => 'required', 'keterangan' => 'required']);
-        $setting = Setting::first();
+        $meta = $this->getDashboardData();
+        
         Nilai::updateOrCreate(
-            [
-                'siswa_id' => $request->siswa_id, 'aspek' => $request->aspek, 'jenis' => 'sikap',
-                'tahun_ajaran' => $setting->tahun_ajaran ?? '2025/2026', 'semester' => $setting->semester ?? 'Ganjil',
-            ],
-            ['nilai' => null, 'predikat' => $request->nilai, 'keterangan' => $request->keterangan]
+            ['siswa_id' => $request->siswa_id, 'aspek' => $request->aspek, 'jenis' => 'sikap', 'semester' => $meta['semester_aktif']],
+            ['nilai' => null, 'predikat' => $request->nilai, 'keterangan' => $request->keterangan, 'tahun_ajaran' => $meta['tahun_ajaran']]
         );
         return redirect()->back()->with('success', 'Nilai sikap diperbarui!');
     }
@@ -546,13 +471,11 @@ public function cetakRaport(int $id)
     public function storeEskul(Request $request)
     {
         $request->validate(['siswa_id' => 'required', 'nama_ekskul' => 'required', 'predikat' => 'required', 'keterangan' => 'required']);
-        $setting = Setting::first();
+        $meta = $this->getDashboardData();
+
         Nilai::updateOrCreate(
-            [
-                'siswa_id' => $request->siswa_id, 'aspek' => $request->nama_ekskul, 'jenis' => 'ekstra',
-                'tahun_ajaran' => $setting->tahun_ajaran ?? '2025/2026', 'semester' => $setting->semester ?? 'Ganjil',
-            ],
-            ['nilai' => null, 'predikat' => $request->predikat, 'keterangan' => $request->keterangan]
+            ['siswa_id' => $request->siswa_id, 'aspek' => $request->nama_ekskul, 'jenis' => 'ekstra', 'semester' => $meta['semester_aktif']],
+            ['nilai' => null, 'predikat' => $request->predikat, 'keterangan' => $request->keterangan, 'tahun_ajaran' => $meta['tahun_ajaran']]
         );
         return redirect()->back()->with('success', 'Data Ekstrakurikuler diperbarui!');
     }
@@ -563,185 +486,105 @@ public function cetakRaport(int $id)
         return redirect()->back()->with('success', 'Data berhasil dihapus!');
     }
 
-public function rekapNilai(Request $request)
-{
-    // 1. Ambil data Guru yang sedang login
-    $guru = auth()->user()->guru;
+    public function rekapNilai(Request $request)
+    {
+        $guru = auth()->user()->guru;
+        $jadwals = Jadwal::with(['mapel'])->where('guru_id', $guru->id)->get();
+        $setting = Setting::first();
+        $jadwalTerpilih = null;
+        $siswas = [];
+        $dataNilai = [];
 
-    // 2. Ambil semua jadwal milik guru tersebut untuk isi dropdown
-    $jadwals = \App\Models\Jadwal::with(['mapel'])
-                ->where('guru_id', $guru->id)
-                ->get();
-
-    // 3. Ambil setting untuk menampilkan Tahun Akademik di header
-    $setting = \App\Models\Setting::first();
-
-    // 4. Inisialisasi variabel pendukung agar tidak "Undefined" saat halaman pertama dimuat
-    $jadwalTerpilih = null;
-    $siswas = [];
-    $dataNilai = [];
-
-    // 5. Cek jika guru sudah memilih jadwal di dropdown
-    if ($request->filled('jadwal_id')) {
-        // Ambil data jadwal spesifik yang dipilih guru
-        $jadwalTerpilih = \App\Models\Jadwal::with(['mapel', 'kelas'])->find($request->jadwal_id);
-        
-        if ($jadwalTerpilih) {
-            // Ambil daftar siswa berdasarkan kelas dari jadwal yang dipilih
-            $siswas = \App\Models\Siswa::where('kelas', $jadwalTerpilih->kelas)->get();
-            
-            // Ambil data nilai yang sudah ada (untuk ditampilkan di input form)
-            $dataNilai = \App\Models\Nilai::where('jadwal_id', $jadwalTerpilih->id)->get();
+        if ($request->filled('jadwal_id')) {
+            $jadwalTerpilih = Jadwal::with(['mapel', 'kelas'])->find($request->jadwal_id);
+            if ($jadwalTerpilih) {
+                $siswas = Siswa::where('kelas', $jadwalTerpilih->kelas)->get();
+                $dataNilai = Nilai::where('jadwal_id', $jadwalTerpilih->id)->get();
+            }
         }
+        $kelasList = Siswa::select('kelas')->distinct()->get();
+        return view('guru.nilai.manajemen', compact('jadwals', 'jadwalTerpilih', 'setting', 'siswas', 'dataNilai', 'kelasList'));
     }
-
-    // 6. Ambil daftar kelas unik (opsional, jika masih dibutuhkan di view)
-    $kelasList = \App\Models\Siswa::select('kelas')->distinct()->get();
-
-    // Pastikan 'jadwalTerpilih' masuk ke dalam compact
-    return view('guru.nilai.manajemen', compact(
-        'jadwals', 
-        'jadwalTerpilih', 
-        'setting', 
-        'siswas', 
-        'dataNilai', 
-        'kelasList'
-    ));
-}
 
     public function leggerJadwal(int $id)
     {
         $guruId = auth()->user()->guru->id;
-        $jadwal = \App\Models\Jadwal::with(['mapel'])->findOrFail($id);
-        $semuaJadwal = \App\Models\Jadwal::with(['mapel'])->where('guru_id', $guruId)->get();
-        $setting = \App\Models\Setting::first();
+        $jadwal = Jadwal::with(['mapel'])->findOrFail($id);
+        $semuaJadwal = Jadwal::with(['mapel'])->where('guru_id', $guruId)->get();
+        $meta = $this->getDashboardData();
+        $semester = $meta['semester_aktif'];
+        $setting = Setting::first();
+        $siswas = Siswa::where('kelas', $jadwal->kelas)->get();
 
-        $siswas = \App\Models\Siswa::where('kelas', $jadwal->kelas)->get();
-
-        $rekapData = $siswas->map(function($siswa) use ($id) {
-            // Ambil semua baris nilai untuk siswa ini pada jadwal ini
-            $semuaNilaiSiswa = \App\Models\Nilai::where('siswa_id', $siswa->id)
-                                                ->where('jadwal_id', $id)
-                                                ->get();
-            
-            // Filter nilai berdasarkan kolom 'jenis' di database kamu
-            $siswa->harian = $semuaNilaiSiswa->where('jenis', 'harian')->first()->nilai ?? 0;
+        $rekapData = $siswas->map(function($siswa) use ($id, $semester) {
+            $semuaNilaiSiswa = Nilai::where('siswa_id', $siswa->id)
+                                    ->where('jadwal_id', $id)
+                                    ->where('semester', $semester)
+                                    ->get();
+                                    
+            $siswa->harian = $semuaNilaiSiswa->where('jenis', 'harian')->avg('nilai') ?? 0;
             $siswa->uts = $semuaNilaiSiswa->where('jenis', 'uts')->first()->nilai ?? 0;
             $siswa->uas = $semuaNilaiSiswa->where('jenis', 'uas')->first()->nilai ?? 0;
             
-            // Hitung nilai akhir secara manual karena di DB kamu nilainya terpisah baris
-            $siswa->akhir = round(($siswa->harian + $siswa->uts + $siswa->uas) / 3, 2);
+            $pembagi = collect([$siswa->harian, $siswa->uts, $siswa->uas])->filter(fn($v) => $v > 0)->count();
+            $siswa->akhir = $pembagi > 0 ? round(($siswa->harian + $siswa->uts + $siswa->uas) / $pembagi, 2) : 0;
             
             return $siswa;
-        });
+        })->sortByDesc('akhir')->values();
 
-        // Urutkan berdasarkan nilai akhir untuk ranking
-        $rekapData = $rekapData->sortByDesc('akhir')->values();
-
-        foreach ($rekapData as $index => $item) {
-            $item->ranking = $index + 1;
-        }
-
-        return view('guru.jadwal.legger', compact('jadwal', 'semuaJadwal', 'rekapData', 'setting'));
+        foreach ($rekapData as $index => $item) { $item->ranking = $index + 1; }
+        return view('guru.jadwal.legger', compact('jadwal', 'semuaJadwal', 'rekapData', 'setting', 'semester'));
     }
 
     public function indexRaport()
     {
-        // 1. Ambil user yang sedang login
         $user = auth()->user();
-        
-        // 2. Ambil setting tahun ajaran
-        $setting = \App\Models\Setting::first();
-
-        // 3. Cek apakah kolom wali_kelas di tabel USERS ada isinya
+        $setting = Setting::first();
         if ($user->wali_kelas) {
-            // Ambil siswa yang kelasnya sama dengan wali_kelas di tabel users
-            $siswas = \App\Models\Siswa::where('kelas', $user->wali_kelas)
-                        ->orderBy('nama', 'asc')
-                        ->get();
-            
+            $siswas = Siswa::where('kelas', $user->wali_kelas)->orderBy('nama', 'asc')->get();
             $namaKelas = $user->wali_kelas;
         } else {
-            // Jika di tabel users kolom wali_kelas kosong
-            // Cari alternatif berdasarkan jadwal yang diajar oleh guru tersebut
-            $guru = \App\Models\Guru::where('user_id', $user->id)->first();
+            $guru = Auth::user()->guru;
             $guru_id = $guru ? $guru->id : 0;
-            
-            $kelasDiajar = \App\Models\Jadwal::where('guru_id', $guru_id)->pluck('kelas');
-            $siswas = \App\Models\Siswa::whereIn('kelas', $kelasDiajar)
-                        ->orderBy('nama', 'asc')
-                        ->get();
-                        
+            $kelasDiajar = Jadwal::where('guru_id', $guru_id)->pluck('kelas');
+            $siswas = Siswa::whereIn('kelas', $kelasDiajar)->orderBy('nama', 'asc')->get();
             $namaKelas = "Bukan Wali Kelas";
         }
-
-        $infoKelas = (object)[
-            'nama_kelas' => $namaKelas
-        ];
-
+        $infoKelas = (object)['nama_kelas' => $namaKelas];
         return view('guru.raport.index', compact('siswas', 'setting', 'infoKelas'));
     }
 
-public function indexJadwal()
+    public function indexJadwal()
     {
-        // 1. Ambil data guru yang sedang login berdasarkan user_id
         $user = auth()->user();
-        $guru = \App\Models\Guru::where('user_id', $user->id)->first();
-
-        // VALIDASI: Jika data guru tidak ada
-        if (!$guru) {
-            return redirect()->back()->with('error', 'Profil Guru tidak ditemukan.');
-        }
-
-        // 2. Ambil data Setting (Untuk Tahun Ajaran & Semester)
-        $setting = \App\Models\Setting::first();
-
-        // 3. Ambil semua jadwal mengajar guru tersebut
-        $jadwals = \App\Models\Jadwal::with('mapel')
-                    ->where('guru_id', $guru->id)
-                    ->get();
-
-        // 4. Arahkan ke view dan KIRIM variabel 'setting'
+        $guru = $user->guru;
+        if (!$guru) return redirect()->back()->with('error', 'Profil Guru tidak ditemukan.');
+        $setting = Setting::first();
+        $jadwals = Jadwal::with('mapel')->where('guru_id', $guru->id)->get();
         return view('guru.jadwal.index', compact('jadwals', 'guru', 'setting'));
     }
 
-   public function storeNilai(Request $request, $id)
+    public function storeNilai(Request $request, $id)
     {
-        // ... (Proses simpan nilai ke database kamu di sini) ...
-
-        // Bagian Notifikasi::create saya hapus 
-        // Supaya tabel Notifikasi tidak penuh dengan log update nilai.
-        
         return redirect()->back()->with('success', 'Nilai berhasil disimpan.');
     }
 
     public function lihatSiswa(int $jadwal_id)
     {
-        // Mengambil data jadwal beserta mapelnya
         $jadwal = Jadwal::with('mapel')->findOrFail($jadwal_id);
-
-        // Mengambil daftar siswa berdasarkan kelas di jadwal tersebut
-        // Menggunakan eager loading 'nilais' agar pengecekan status di Blade efisien
         $siswas = Siswa::with(['nilais' => function($query) use ($jadwal_id) {
-                            $query->where('jadwal_id', $jadwal_id);
-                    }])
-                    ->where('kelas', $jadwal->kelas)
-                    ->orderBy('nama', 'asc')
-                    ->get();
-
+                $query->where('jadwal_id', $jadwal_id);
+            }])
+            ->where('kelas', $jadwal->kelas)->orderBy('nama', 'asc')->get();
         $setting = Setting::first(); 
-
-        // Pastikan path view ini sesuai dengan folder yang kamu maksud
         return view('guru.nilai.siswa_list', compact('jadwal', 'siswas', 'setting'));
     }
 
     public function profil()
     {
-        // Mengambil data user yang sedang login beserta relasi gurunya
         $user = auth()->user();
         $guru = $user->guru; 
         $setting = Setting::first();
-
         return view('guru.profil', compact('user', 'guru', 'setting'));
     }
 }
