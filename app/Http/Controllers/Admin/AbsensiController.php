@@ -126,6 +126,9 @@ class AbsensiController extends Controller
     /**
      * Export ke PDF dengan header periode yang sesuai
      */
+/**
+     * Export ke PDF dengan header periode yang sesuai
+     */
     public function cetak(Request $request)
     {
         $setup = Setting::first();
@@ -133,22 +136,19 @@ class AbsensiController extends Controller
         $filterKelas = $request->get('kelas');
         $tanggal = $request->get('filter_date', date('Y-m-d'));
         $bulan = $request->get('filter_month', date('m'));
+        $tahun = date('Y', strtotime($tanggal)); // Mengambil tahun dari filter_date
         $semester = $request->get('semester', $setup->semester ?? '1');
 
         $query = Absensi::with(['siswa.dataKelas', 'jadwal.mapel']);
 
         if ($mode == 'bulanan') {
             $query->whereMonth('created_at', $bulan);
+            $query->whereYear('created_at', $tahun);
         } else {
             $query->whereDate('created_at', $tanggal);
         }
 
-        if ($semester == '1') {
-            $query->whereMonth('created_at', '>=', '07')->whereMonth('created_at', '<=', '12');
-        } else {
-            $query->whereMonth('created_at', '>=', '01')->whereMonth('created_at', '<=', '06');
-        }
-
+        // Filter Kelas
         if ($filterKelas) {
             $query->whereHas('siswa.dataKelas', function($q) use ($filterKelas) {
                 $q->where('nama_kelas', $filterKelas);
@@ -157,24 +157,57 @@ class AbsensiController extends Controller
 
         $absensis = $query->latest()->get();
 
-        $info = [
-            'mode'           => $mode,
-            'tanggal'        => $tanggal,
-            'bulan'          => $this->getNamaBulan($bulan),
-            'tahun_ajaran'   => $request->get('tahun_ajaran', $setup->tahun_ajaran),
-            'semester'       => $semester,
-            'kelas'          => $filterKelas ?? 'Semua Kelas',
-            'total'          => $absensis->count(),
-            'nama_sekolah'   => $setup->nama_sekolah ?? 'SMAN 1 JEJANGKIT',
-            'alamat'         => $setup->alamat ?? '-',
-            'kepala_sekolah' => $setup->nama_kepsek ?? '...........................',
-            'nip'            => $setup->nip_kepsek ?? '...........................'
-        ];
+        // --- BAGIAN TAMBAHAN UNTUK REKAP KALENDER ---
+        $bulan_teks = $this->getNamaBulan((int)$bulan);
+        $jumlah_hari = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->daysInMonth;
+        
+        // Ambil data siswa berdasarkan kelas untuk rekap 1-31 hari
+        $siswas = \App\Models\Siswa::whereHas('dataKelas', function($q) use ($filterKelas) {
+                        if($filterKelas) $q->where('nama_kelas', $filterKelas);
+                    })->orderBy('nama', 'asc')->get();
 
-        $pdf = Pdf::loadView('admin.absensi.pdf', compact('absensis', 'info'))
-                  ->setPaper('a4', 'portrait');
+        $data_rekap = $siswas->map(function ($siswa) use ($bulan, $tahun, $jumlah_hari) {
+            $hari = [];
+            for ($tgl = 1; $tgl <= $jumlah_hari; $tgl++) {
+                $absen = Absensi::where('siswa_id', $siswa->id)
+                    ->whereYear('created_at', $tahun)
+                    ->whereMonth('created_at', $bulan)
+                    ->whereDay('created_at', $tgl)
+                    ->first();
 
-        return $pdf->stream('Laporan_Absensi.pdf');
+                if (!$absen) {
+                    $status = '.'; 
+                } else {
+                    $s = strtoupper(substr($absen->status, 0, 1));
+                    $status = in_array($s, ['H','S','I','A']) ? $s : '.';
+                }
+                $hari[$tgl] = $status;
+            }
+
+            return [
+                'nama' => $siswa->nama,
+                'hari' => $hari,
+                'total' => [
+                    'H' => collect($hari)->filter(fn($v) => $v == 'H')->count(),
+                    'S' => collect($hari)->filter(fn($v) => $v == 'S')->count(),
+                    'I' => collect($hari)->filter(fn($v) => $v == 'I')->count(),
+                    'A' => collect($hari)->filter(fn($v) => $v == 'A')->count(),
+                ]
+            ];
+        });
+        // --- END BAGIAN TAMBAHAN ---
+
+        // Kirim semua variabel secara terpisah agar terbaca oleh Blade
+        $pdf = Pdf::loadView('admin.absensi.pdf', [
+            'data' => $data_rekap,
+            'bulan_teks' => $bulan_teks,
+            'tahun' => $tahun,
+            'jumlah_hari' => $jumlah_hari,
+            'kelas' => $filterKelas ?? 'Semua Kelas',
+            'setting' => $setup
+        ])->setPaper('a4', 'landscape'); // Gunakan landscape agar muat 31 hari
+
+        return $pdf->stream('Laporan_Rekap_Absensi.pdf');
     }
 
     private function getNamaBulan(int $bulan)
@@ -187,5 +220,17 @@ class AbsensiController extends Controller
             '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
         ];
         return $daftarBulan[$bulanStr] ?? $bulan;
+    }
+
+    public function destroy(int $id)
+    {
+        try {
+            $absensi = \App\Models\Absensi::findOrFail($id);
+            $absensi->delete();
+
+            return redirect()->back()->with('success', 'Data absensi berhasil dihapus!');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus data.');
+        }
     }
 }

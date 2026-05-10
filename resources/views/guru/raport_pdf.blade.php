@@ -188,7 +188,7 @@
             <tbody>
                 <tr><td width="60%">Sakit</td><td class="center bold">{{ $absensi['sakit'] ?? 0 }} hari</td></tr>
                 <tr><td>Izin</td><td class="center bold">{{ $absensi['izin'] ?? 0 }} hari</td></tr>
-                <tr><td>Tanpa Keterangan</td><td class="center bold">{{ $absensi['alfa'] ?? 0 }} hari</td></tr>
+                <tr><td>Tanpa Keterangan</td><td class="center bold">{{ $absensi['alpa'] ?? 0 }} hari</td></tr>
             </tbody>
         </table>
 
@@ -208,10 +208,11 @@
 
         <table class="footer-ttd">
             <tr>
-                <td width="33%">Mengetahui,<br>Orang Tua/Wali<div class="ttd-space"></div>( .................................... )</td>
-                <td width="34%">Mengetahui,<br>Kepala Sekolah<div class="ttd-space"></div><strong><u>{{ $setting->nama_kepsek }}</u></strong><br>NIP. {{ $setting->nip_kepsek }}</td>
+                <td width="33%">Mengetahui,<br>Orang Tua/Wali<div class="ttd-space"><br></div>( .................................... )</td>
+                <td width="34%">Mengetahui,<br>Kepala Sekolah<div class="ttd-space"><br></div><strong><u>{{ $setting->nama_kepsek }}</u></strong><br>NIP. {{ $setting->nip_kepsek }}</td>
                 <td width="33%">
-                    Wali Kelas<div class="ttd-space"></div>
+                    <br>
+                    Wali Kelas<div class="ttd-space"><br></div>
                     <strong><u>{{ $nama_wali }}</u></strong><br>NIP. {{ $nip }}
                 </td>
             </tr>

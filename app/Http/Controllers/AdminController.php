@@ -384,4 +384,66 @@ private function prosesDataNilai($kelas, $mapels)
         Notifikasi::findOrFail($id)->delete();
         return redirect()->back()->with('success', 'Notifikasi berhasil dihapus!');
     }
+
+public function cetakRekapBulanan(Request $request)
+{
+    $kelas = $request->kelas;
+    $bulan = $request->bulan ?? date('m'); 
+    $tahun = $request->tahun ?? date('Y'); 
+
+    if (!$kelas) {
+        return redirect()->back()->with('error', 'Silakan pilih kelas terlebih dahulu.');
+    }
+
+    $setting = \App\Models\Setting::first();
+    // Mengubah angka bulan menjadi teks (Indonesian)
+    $nama_bulan = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->translatedFormat('F');
+    $jumlah_hari = \Carbon\Carbon::createFromDate($tahun, $bulan, 1)->daysInMonth;
+
+    $siswas = \App\Models\Siswa::where('kelas', $kelas)->orderBy('nama', 'asc')->get();
+
+    $data_rekap = $siswas->map(function ($siswa) use ($bulan, $tahun, $jumlah_hari) {
+        $hari = [];
+        for ($tgl = 1; $tgl <= $jumlah_hari; $tgl++) {
+            // Ambil semua status absen siswa di tanggal tersebut
+            $absen = \App\Models\Absensi::where('siswa_id', $siswa->id)
+                ->whereYear('tanggal', $tahun)
+                ->whereMonth('tanggal', $bulan)
+                ->whereDay('tanggal', $tgl)
+                ->get();
+
+            if ($absen->isEmpty()) {
+                $status = '.'; 
+            } else {
+                // Prioritas: Alpa > Izin > Sakit > Hadir
+                if ($absen->whereIn('status', ['A', 'Alpa', 'Alfa'])->count() > 0) $status = 'A';
+                elseif ($absen->whereIn('status', ['I', 'Izin'])->count() > 0) $status = 'I';
+                elseif ($absen->whereIn('status', ['S', 'Sakit'])->count() > 0) $status = 'S';
+                else $status = 'H';
+            }
+            $hari[$tgl] = $status;
+        }
+
+        return [
+            'nama' => $siswa->nama,
+            'hari' => $hari,
+            'total' => [
+                'S' => collect($hari)->filter(fn($v) => $v == 'S')->count(),
+                'I' => collect($hari)->filter(fn($v) => $v == 'I')->count(),
+                'A' => collect($hari)->filter(fn($v) => $v == 'A')->count(),
+            ]
+        ];
+    });
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.absensi.cetak_bulanan_pdf', [
+        'data' => $data_rekap,
+        'jumlah_hari' => $jumlah_hari,
+        'bulan_teks' => $nama_bulan,
+        'tahun' => $tahun,
+        'kelas' => $kelas,
+        'setting' => $setting
+    ]);
+
+    return $pdf->setPaper('a4', 'landscape')->stream("Rekap_Bulanan_{$kelas}.pdf");
+}
 }

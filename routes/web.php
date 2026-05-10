@@ -81,6 +81,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/absensi/{id}/edit', [AdminAbsensiController::class, 'edit'])->name('absensi.edit');
         Route::put('/absensi/{id}', [AdminAbsensiController::class, 'update'])->name('absensi.update');
         Route::resource('absensi', AdminAbsensiController::class)->only(['index']);
+        // Pastikan berada di dalam prefix 'admin' dan name 'admin.'
+Route::delete('/absensi/{id}', [App\Http\Controllers\Admin\AbsensiController::class, 'destroy'])->name('absensi.destroy');
 
         // --- MANAJEMEN NILAI ---
         Route::controller(NilaiController::class)->prefix('nilai')->name('nilai.')->group(function () {

@@ -224,6 +224,11 @@ class GuruController extends Controller
     | ABSENSI & NOTIFIKASI WA (FONNTE)
     |--------------------------------------------------------------------------
     */
+ /*
+    |--------------------------------------------------------------------------
+    | ABSENSI & NOTIFIKASI WA (FONNTE)
+    |--------------------------------------------------------------------------
+    */
     public function indexAbsensi()
     {
         $guru = Auth::user()->guru;
@@ -260,8 +265,22 @@ class GuruController extends Controller
             $target_siswa = Siswa::find($siswaId);
             $status_wa = null;
             
+            // LOGIKA CEK ALPA PERTAMA (CEGAH SPAM)
             if ($statusFix == 'Alpa' && $target_siswa && $target_siswa->no_wa_ortu) {
-                $status_wa = $this->kirimNotifWA($target_siswa, $jadwal, $request->tanggal);
+                
+                // Cari apakah hari ini sudah ada catatan Alpa/Alfa di jam pelajaran lain
+                $sudahAdaAlpaLain = Absensi::where('siswa_id', $siswaId)
+                    ->whereDate('tanggal', $request->tanggal)
+                    ->whereIn('status', ['Alpa', 'alpa', 'A', 'Alfa', 'alfa'])
+                    ->where('jadwal_id', '!=', $request->jadwal_id) // Kecuali jadwal yang sedang diinput
+                    ->exists();
+
+                // Hanya kirim WA jika belum ada catatan Alpa lain hari ini
+                if (!$sudahAdaAlpaLain) {
+                    $status_wa = $this->kirimNotifWA($target_siswa, $jadwal, $request->tanggal);
+                } else {
+                    $status_wa = 'already_sent_today'; // Tandai agar tidak kirim ulang
+                }
             }
 
             $absen = Absensi::updateOrCreate(
@@ -269,17 +288,17 @@ class GuruController extends Controller
                 ['status' => $statusFix, 'status_wa' => $status_wa, 'updated_at' => now()]
             );
 
-            if ($statusFix == 'Alpa') {
+            // Log Notifikasi untuk Admin (Hanya jika WA terkirim)
+            if ($statusFix == 'Alpa' && $status_wa == 'sent') {
                 $admin = \App\Models\User::where('role', 'admin')->first();
                 if ($admin && $target_siswa) {
-                    $statusLogAdmin = ($status_wa == 'sent') ? 'Terkirim' : 'Gagal';
                     \App\Models\Notifikasi::create([
                         'user_id' => $admin->id,
                         'absensi_id' => $absen->id,
                         'tanggal' => now(),
                         'kelas' => $target_siswa->kelas, 
-                        'isi_pesan' => "LOG: Siswa {$target_siswa->nama} (Kelas {$target_siswa->kelas}) ALPA pada Mapel {$jadwal->mapel->nama_mapel}",
-                        'status_kirim' => $statusLogAdmin, 
+                        'isi_pesan' => "LOG: WA Terkirim ke Ortu {$target_siswa->nama} (Kelas {$target_siswa->kelas}) karena ALPA",
+                        'status_kirim' => 'Terkirim', 
                     ]);
                 }
             }
@@ -350,33 +369,30 @@ public function cetakRaport(int $id)
     {
         $user = Auth::user();
         $siswa = Siswa::findOrFail($id);
+        
         $meta = $this->getDashboardData();
-        $semester = $meta['semester_aktif']; // Menggunakan "Ganjil" atau "Genap" agar selaras
+        $semester = $meta['semester_aktif']; 
         $tahun_ajaran = $meta['tahun_ajaran'];
         $setting = Setting::first() ?? new Setting();
 
         $jadwals = Jadwal::with('mapel')->where('kelas', $siswa->kelas)->get();
         
-        // Filter nilai berdasarkan semester aktif
         $allRecords = Nilai::where('siswa_id', $siswa->id)
-                           ->where('semester', $semester)
-                           ->get();
+                            ->where('semester', $semester)
+                            ->where('tahun_ajaran', $tahun_ajaran)
+                            ->get();
 
         $dataRaport = $jadwals->map(function ($jadwal) use ($allRecords) {
             $mapel = $jadwal->mapel->nama_mapel ?? 'Mata Pelajaran';
             $nilaiMapel = $allRecords->where('jadwal_id', $jadwal->id);
             
-            // Perhitungan Nilai Akhir
             $harian = $nilaiMapel->where('jenis', 'harian')->avg('nilai') ?? 0;
             $uts = $nilaiMapel->where('jenis', 'uts')->avg('nilai') ?? 0;
             $uas = $nilaiMapel->where('jenis', 'uas')->avg('nilai') ?? 0;
-            $nilaiAkhir = round(($harian + $uts + $uas) / 3);
+            
+            $totalNilai = $harian + $uts + $uas;
+            $nilaiAkhir = $totalNilai > 0 ? round($totalNilai / 3) : 0;
 
-            /**
-             * MENGAMBIL CAPAIAN KOMPETENSI DARI DATABASE
-             * Mengambil string dari kolom 'keterangan' di tabel nilais.
-             * Menggunakan last() untuk mengambil inputan terbaru jika ada beberapa entri.
-             */
             $narasi = $nilaiMapel->whereNotNull('keterangan')
                                  ->where('keterangan', '!=', '')
                                  ->last()->keterangan ?? "Data capaian kompetensi untuk mata pelajaran $mapel belum tersedia.";
@@ -400,30 +416,44 @@ public function cetakRaport(int $id)
             ];
         })->values();
         
+        /**
+         * FIX ABSENSI (UNIQUE DAYS):
+         * Menghitung tanggal yang berbeda (distinct) agar absen per mapel tidak menumpuk di raport.
+         */
         $absensi = [
-            'sakit' => Absensi::where('siswa_id', $siswa->id)->where('status', 'Sakit')->count(),
-            'izin'  => Absensi::where('siswa_id', $siswa->id)->where('status', 'Izin')->count(),
-            'alpa'  => Absensi::where('siswa_id', $siswa->id)->whereIn('status', ['Alpa', 'A'])->count(),
+            'sakit' => \App\Models\Absensi::where('siswa_id', $siswa->id)
+                        ->whereIn('status', ['Sakit', 'sakit', 'S'])
+                        ->distinct('tanggal')
+                        ->count('tanggal'),
+            'izin'  => \App\Models\Absensi::where('siswa_id', $siswa->id)
+                        ->whereIn('status', ['Izin', 'izin', 'I'])
+                        ->distinct('tanggal')
+                        ->count('tanggal'),
+            'alpa'  => \App\Models\Absensi::where('siswa_id', $siswa->id)
+                        ->whereIn('status', ['Alpa', 'alpa', 'A', 'Alfa', 'alfa', 'Tanpa Keterangan', 'TK'])
+                        ->distinct('tanggal')
+                        ->count('tanggal'),
         ];
 
-        return Pdf::loadView('guru.raport_pdf', [
-            'siswa' => $siswa, 
-            'setting' => $setting, 
-            'user' => $user, 
-            'dataRaport' => $dataRaport, 
-            'dataSikap' => $dataSikap, 
-            'eskul' => $eskul, 
-            'absensi' => $absensi, 
-            'semester' => $semester,
-            'tahun_ajaran' => $tahun_ajaran, 
-            'tgl_cetak' => now()->translatedFormat('d F Y'),
-            'nama_kepsek' => $setting->nama_kepsek, 
-            'nip_kepsek' => $setting->nip_kepsek, 
-            'nama_wali' => $user->name,
-            'nip' => $user->nip ?? '-', 
-            'catatan_wali' => $dataSikap->first()->keterangan ?? 'Tingkatkan prestasimu.'
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('guru.raport_pdf', [
+            'siswa'         => $siswa, 
+            'setting'       => $setting, 
+            'user'          => $user, 
+            'dataRaport'    => $dataRaport, 
+            'dataSikap'     => $dataSikap, 
+            'eskul'         => $eskul, 
+            'absensi'       => $absensi, 
+            'semester'      => $semester,
+            'tahun_ajaran'  => $tahun_ajaran, 
+            'tgl_cetak'     => now()->translatedFormat('d F Y'),
+            'nama_kepsek'   => $setting->nama_kepsek, 
+            'nip_kepsek'    => $setting->nip_kepsek, 
+            'nama_wali'     => $user->name,
+            'nip'           => $user->nip ?? '-', 
+            'catatan_wali'  => $dataSikap->first()->keterangan ?? 'Tingkatkan terus prestasimu.'
         ])->setPaper('a4', 'portrait')->stream('Raport_'.$siswa->nama.'.pdf');
-    }    /*
+    }
+       /*
     |--------------------------------------------------------------------------
     | INPUT SIKAP & ESKUL
     |--------------------------------------------------------------------------

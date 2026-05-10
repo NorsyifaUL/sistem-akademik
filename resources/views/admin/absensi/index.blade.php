@@ -11,10 +11,11 @@
             </p>
         </div>
         
-        @if(request('kelas'))
+        {{-- Tombol hanya muncul jika Kelas sudah dipilih DAN Mode adalah Bulanan --}}
+        @if(request('kelas') && request('mode') == 'bulanan')
         <a href="{{ route('admin.absensi.cetak', request()->all()) }}" target="_blank" 
            class="bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2 px-4 rounded-lg shadow-sm transition-all active:scale-95 uppercase text-[9px] tracking-widest flex items-center gap-2 w-fit">
-            <i class="fa-solid fa-print"></i> Cetak PDF
+            <i class="fa-solid fa-print"></i> Cetak Rekap Bulanan
         </a>
         @endif
     </div>
@@ -22,7 +23,7 @@
     {{-- Main Container Card --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden border-t-2 border-t-blue-600">
         
-        {{-- Filter Section - Terpusat & Sejajar Sesuai image_919e01.png --}}
+        {{-- Filter Section --}}
         <div class="p-4 border-b border-gray-50 bg-gray-50/30">
             <form method="GET" action="{{ route('admin.absensi.index') }}">
                 <div class="flex flex-wrap items-end gap-3">
@@ -175,10 +176,25 @@
                             </div>
                         </td>
                         <td class="px-6 py-3 text-right">
-                            <a href="{{ route('admin.absensi.edit', $a->id) }}" 
-                               class="inline-flex items-center justify-center w-7 h-7 bg-slate-50 text-slate-400 rounded-lg border border-gray-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm active:scale-90">
-                                <i class="fa-solid fa-pen-to-square text-[9px]"></i>
-                            </a>
+                            <div class="flex items-center justify-end gap-2">
+                                {{-- Tombol Edit --}}
+                                <a href="{{ route('admin.absensi.edit', $a->id) }}" 
+                                   class="inline-flex items-center justify-center w-7 h-7 bg-slate-50 text-slate-400 rounded-lg border border-gray-100 hover:bg-blue-600 hover:text-white transition-all shadow-sm active:scale-90"
+                                   title="Edit">
+                                    <i class="fa-solid fa-pen-to-square text-[9px]"></i>
+                                </a>
+
+                                {{-- Tombol Hapus --}}
+                                <form action="{{ route('admin.absensi.destroy', $a->id) }}" method="POST" onsubmit="return confirm('Hapus data absensi ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" 
+                                            class="inline-flex items-center justify-center w-7 h-7 bg-slate-50 text-rose-400 rounded-lg border border-gray-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm active:scale-90"
+                                            title="Hapus">
+                                        <i class="fa-solid fa-trash-can text-[9px]"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @empty
@@ -205,7 +221,6 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
     
-    /* Menghilangkan icon kalender bawaan Chrome agar lebih clean */
     input[type="date"]::-webkit-calendar-picker-indicator {
         cursor: pointer;
         opacity: 0.6;

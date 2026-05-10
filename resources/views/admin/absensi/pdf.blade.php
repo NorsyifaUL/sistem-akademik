@@ -2,170 +2,132 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Absensi - Sman 1 Jejangkit</title>
+    <title>Rekap Bulanan Absensi - Sman 1 Jejangkit</title>
     <style>
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
-            font-size: 11px;
+            font-size: 9px; 
             color: #333;
-            line-height: 1.4;
+            line-height: 1.2;
             margin: 0;
             padding: 0;
         }
         .header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             border-bottom: 2px solid #000;
-            padding-bottom: 10px;
+            padding-bottom: 5px;
             position: relative;
         }
         .header h1 {
             text-transform: uppercase;
-            font-size: 14px;
+            font-size: 12px;
             margin: 0;
-            color: #000;
         }
         .header .school-name {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
-            margin: 5px 0;
+            margin: 2px 0;
             display: block;
             text-transform: uppercase;
         }
-        .logo {
-            position: absolute;
-            left: 0;
-            top: 0;
-            max-height: 70px;
-        }
         .info-table {
             width: 100%;
-            margin-bottom: 20px;
-        }
-        .info-table td {
-            padding: 2px 0;
-            vertical-align: top;
+            margin-bottom: 10px;
         }
         .info-label {
-            width: 100px;
             font-weight: bold;
             text-transform: uppercase;
-            font-size: 9px;
+            font-size: 8px;
+            width: 80px;
         }
         .main-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
         }
         .main-table th {
             background-color: #f2f2f2;
             border: 1px solid #000;
-            padding: 8px 5px;
+            padding: 4px 2px;
             text-align: center;
             font-weight: bold;
-            text-transform: uppercase;
-            font-size: 9px;
         }
         .main-table td {
             border: 1px solid #000;
-            padding: 7px 6px;
-            vertical-align: middle;
-        }
-        .text-center { text-align: center; }
-        .font-bold { font-weight: bold; }
-        
-        .status {
-            font-weight: bold;
-            font-size: 8px;
-            padding: 2px 4px;
-            border-radius: 3px;
+            padding: 4px 2px;
             text-align: center;
-            display: block;
         }
-        .status-h { color: #006400; background-color: #e6ffed; border: 0.5px solid #006400; }
-        .status-s { color: #8b4513; background-color: #fff9e6; border: 0.5px solid #8b4513; }
-        .status-i { color: #00008b; background-color: #e6f0ff; border: 0.5px solid #00008b; }
-        .status-a { color: #8b0000; background-color: #ffe6e6; border: 0.5px solid #8b0000; }
-
+        .text-left { text-align: left; padding-left: 5px !important; }
+        .font-bold { font-weight: bold; }
+        .text-red { color: #8b0000; font-weight: bold; }
+        
         .footer {
-            margin-top: 40px;
+            margin-top: 20px;
             width: 100%;
         }
         .signature-box {
             float: right;
-            width: 250px;
+            width: 200px;
             text-align: center;
         }
-        .signature-space {
-            height: 60px;
-        }
+        .signature-space { height: 40px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        @if(!empty($info['logo']))
-            <img src="{{ public_path('storage/' . $info['logo']) }}" class="logo">
-        @endif
-
-        <h1>Laporan Monitoring Absensi Siswa</h1>
-        {{-- Nama sekolah diisi manual sesuai instruksi --}}
+        <h1>Laporan Rekapitulasi Absensi Bulanan Siswa</h1>
         <span class="school-name">Sman 1 Jejangkit</span>
     </div>
 
     <table class="info-table">
         <tr>
-            <td class="info-label">Periode</td>
-            <td width="200">: {{ $info['mode'] == 'bulanan' ? 'REKAP BULANAN' : 'HARIAN' }}</td>
-            <td class="info-label">Dicetak Pada</td>
-            <td>: {{ date('d/m/Y H:i') }}</td>
+            <td class="info-label">Bulan/Tahun</td>
+            <td>: {{ $bulan_teks }} {{ $tahun }}</td>
+            <td class="info-label">Kelas</td>
+            <td>: {{ $kelas }}</td>
         </tr>
         <tr>
-            <td class="info-label">{{ $info['mode'] == 'bulanan' ? 'Bulan' : 'Tanggal' }}</td>
-            <td>: {{ $info['mode'] == 'bulanan' ? $info['bulan'] : date('d F Y', strtotime($info['tanggal'])) }}</td>
-            <td class="info-label">Kelas</td>
-            <td>: {{ $info['kelas'] }}</td>
+            <td class="info-label">Dicetak Pada</td>
+            <td colspan="3">: {{ date('d/m/Y H:i') }}</td>
         </tr>
     </table>
 
     <table class="main-table">
         <thead>
             <tr>
-                <th width="25">No</th>
-                <th width="90">NISN</th>
-                <th>Nama Siswa</th>
-                <th width="80">Kelas</th>
-                <th width="65">Status</th>
-                <th width="110">Waktu Presensi</th>
+                <th rowspan="2" width="20">No</th>
+                <th rowspan="2">Nama Siswa</th>
+                <th colspan="{{ $jumlah_hari }}">Tanggal</th>
+                <th colspan="4">Total</th> </tr>
+            <tr>
+                @for($i = 1; $i <= $jumlah_hari; $i++)
+                    <th width="15">{{ $i }}</th>
+                @endfor
+                <th width="15">H</th> <th width="15">S</th>
+                <th width="15">I</th>
+                <th width="15">A</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($absensis as $key => $a)
+            @foreach($data as $key => $row)
             <tr>
-                <td class="text-center">{{ $key + 1 }}</td>
-                <td class="text-center">{{ $a->siswa->nisn ?? '-' }}</td>
-                <td class="font-bold">{{ strtoupper($a->siswa->nama ?? 'N/A') }}</td>
-                <td class="text-center">{{ $a->siswa->dataKelas->nama_kelas ?? 'N/A' }}</td>
-                <td class="text-center">
-                    @php
-                        $s = strtoupper($a->status);
-                        $labels = ['H' => 'HADIR', 'S' => 'SAKIT', 'I' => 'IZIN', 'A' => 'ALFA'];
+                <td>{{ $key + 1 }}</td>
+                <td class="text-left font-bold">{{ strtoupper($row['nama']) }}</td>
+                @for($i = 1; $i <= $jumlah_hari; $i++)
+                    @php 
+                        $st = $row['hari'][$i];
+                        $class = ($st == 'A') ? 'text-red' : '';
                     @endphp
-                    <span class="status status-{{ strtolower($s) }}">
-                        {{ $labels[$s] ?? $s }}
-                    </span>
-                </td>
-                <td class="text-center">
-                    {{ $a->created_at->format('H:i') }} 
-                    <span style="color: #777; font-size: 9px;">({{ $a->created_at->format('d/m/y') }})</span>
-                </td>
+                    <td class="{{ $class }}">
+                        {{ $st == '.' ? '' : $st }}
+                    </td>
+                @endfor
+                <td>{{ $row['total']['H'] }}</td> <td>{{ $row['total']['S'] }}</td>
+                <td>{{ $row['total']['I'] }}</td>
+                <td class="text-red">{{ $row['total']['A'] }}</td>
             </tr>
-            @empty
-            <tr>
-                <td colspan="6" class="text-center" style="padding: 20px;">Data absensi tidak ditemukan.</td>
-            </tr>
-            @endforelse
+            @endforeach
         </tbody>
     </table>
 
@@ -174,15 +136,12 @@
             <p>Jejangkit, {{ date('d F Y') }}</p>
             <p>Mengetahui,</p>
             <p class="font-bold">Kepala Sekolah</p>
-            
             <div class="signature-space"></div>
-            
             <p class="font-bold" style="text-decoration: underline; margin-bottom: 2px;">
-                {{ $info['kepala_sekolah'] }}
+                {{ $setting->nama_kepsek ?? '..........................' }}
             </p>
-            <p style="margin-top: 0;">NIP. {{ $info['nip'] }}</p>
+            <p style="margin-top: 0;">NIP. {{ $setting->nip_kepsek ?? '-' }}</p>
         </div>
-        <div style="clear: both;"></div>
     </div>
 
 </body>
