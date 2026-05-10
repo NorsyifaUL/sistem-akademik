@@ -1,24 +1,33 @@
 @extends('layouts.guru')
 
 @section('content')
-<div class="container-fluid mx-auto px-4 py-6">
-    
-    <div class="bg-white rounded shadow-md border border-gray-200 overflow-hidden">
+<style>
+    /* Spin button tetap ada, hanya kita beri sedikit padding agar tidak menempel ke teks */
+    input[type=number] {
+        padding-right: 2px;
+    }
+    .font-academic { font-family: 'Inter', sans-serif; }
+</style>
+
+<div class="max-w-7xl mx-auto px-2 py-4 font-academic text-gray-800">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         
-        {{-- Header Panel --}}
-        <div class="border-t-4 border-green-600 px-5 py-4 bg-gray-50 border-b">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        {{-- HEADER FILTER --}}
+        <div class="border-t-4 border-green-600 px-6 py-4 bg-gray-50/50 border-b">
+            <div class="flex flex-col lg:flex-row justify-between items-center gap-4">
                 <div>
-                    <h3 class="text-lg font-bold text-gray-700 uppercase tracking-wider">Input Nilai & Capaian</h3>
+                    <h3 class="text-sm font-black text-gray-700 uppercase tracking-widest">Input Nilai Kolektif</h3>
                     <div class="flex items-center gap-2 mt-1">
-                        <p class="text-xs text-gray-500">Tahun Akademik: {{ $setting->tahun_ajaran ?? '-' }}</p>
-                        <span class="text-gray-300">|</span>
-                        <p class="text-xs text-gray-500 uppercase">Semester: <span class="font-bold text-green-600">{{ $semester }}</span></p>
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-tight">TA: {{ $setting->tahun_ajaran ?? '-' }}</p>
+                        <span class="text-gray-200">|</span>
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Semester: 
+                            <span class="text-green-600 font-black">{{ $setting->semester ?? ($semester ?? '-') }}</span>
+                        </p>
                     </div>
                 </div>
 
                 <form action="{{ route('guru.lihat_nilai') }}" method="GET" class="flex flex-wrap items-center gap-2">
-                    <select name="jadwal_id" required class="text-sm border-gray-300 rounded shadow-sm focus:ring-green-500 focus:border-green-500">
+                    <select name="jadwal_id" required class="text-[11px] font-bold border-gray-200 rounded-lg py-1.5 focus:ring-green-500 uppercase tracking-tighter">
                         <option value="">-- Pilih Jadwal --</option>
                         @foreach($jadwals as $j)
                             <option value="{{ $j->id }}" {{ request('jadwal_id') == $j->id ? 'selected' : '' }}>
@@ -27,16 +36,16 @@
                         @endforeach
                     </select>
 
-                    <select name="jenis_nilai" required class="text-sm border-gray-300 rounded shadow-sm focus:ring-green-500 focus:border-green-500">
-                        <option value="">-- Pilih Jenis Nilai --</option>
-                        <option value="harian" {{ strtolower(request('jenis_nilai')) == 'harian' ? 'selected' : '' }}>Nilai Harian (UH)</option>
-                        <option value="UTS" {{ request('jenis_nilai') == 'UTS' ? 'selected' : '' }}>Nilai UTS</option>
-                        <option value="UAS" {{ request('jenis_nilai') == 'UAS' ? 'selected' : '' }}>Nilai UAS</option>
-                        <option value="akhir" {{ request('jenis_nilai') == 'akhir' ? 'selected' : '' }}>REKAP NILAI AKHIR</option>
+                    <select name="jenis_nilai" required class="text-[11px] font-bold border-gray-200 rounded-lg py-1.5 focus:ring-green-500 uppercase tracking-tighter">
+                        <option value="">-- Jenis Nilai --</option>
+                        <option value="harian" {{ strtolower(request('jenis_nilai')) == 'harian' ? 'selected' : '' }}>Harian (UH)</option>
+                        <option value="UTS" {{ request('jenis_nilai') == 'UTS' ? 'selected' : '' }}>UTS</option>
+                        <option value="UAS" {{ request('jenis_nilai') == 'UAS' ? 'selected' : '' }}>UAS</option>
+                        <option value="akhir" {{ request('jenis_nilai') == 'akhir' ? 'selected' : '' }}>Rekap Akhir</option>
                     </select>
 
-                    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-bold shadow-sm transition">
-                        Tampilkan Siswa
+                    <button type="submit" class="bg-gray-900 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95">
+                        Tampilkan
                     </button>
                 </form>
             </div>
@@ -48,102 +57,91 @@
                 <input type="hidden" name="jadwal_id" value="{{ $jadwalTerpilih->id }}">
                 <input type="hidden" name="jenis" value="{{ strtolower(request('jenis_nilai')) }}">
 
-                <div class="px-6 py-3 bg-yellow-50 border-b border-yellow-100 flex justify-between items-center">
-                    <span class="text-sm text-yellow-800 font-medium">
-                        <i class="fas fa-edit mr-1"></i> 
-                        Entry Nilai <strong>{{ strtoupper(request('jenis_nilai')) }}</strong>
+                <div class="px-6 py-2.5 bg-amber-50/50 border-b border-amber-100 flex justify-between items-center">
+                    <span class="text-[10px] text-amber-700 font-black uppercase tracking-widest">
+                        <i class="fas fa-edit mr-1.5"></i> Entry Mode: {{ request('jenis_nilai') }}
                     </span>
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded shadow font-bold text-sm transition hover:scale-105 transform">
-                        <i class="fas fa-save mr-2"></i> SIMPAN PERUBAHAN
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-1.5 rounded-lg shadow-md font-black text-[10px] uppercase tracking-widest transition-all active:scale-95">
+                        <i class="fas fa-save mr-2"></i> Simpan Permanen
                     </button>
                 </div>
 
                 <div class="overflow-x-auto">
-                    {{-- Menggunakan min-width lebih besar untuk mode "Akhir" agar deskripsi punya ruang --}}
-                    <table class="w-full text-sm text-left border-collapse" style="min-width: {{ request('jenis_nilai') == 'akhir' ? '1100px' : '850px' }};">
+                    <table class="w-full text-left border-collapse table-auto">
                         <thead>
-                            <tr class="bg-gray-100 text-gray-700 uppercase text-[10px] tracking-wider">
-                                <th class="px-4 py-4 border-r text-center w-12">No</th>
-                                <th class="px-6 py-4 border-r w-64">Nama Siswa</th>
+                            <tr class="bg-gray-50 border-b border-gray-100 text-gray-400 text-[9px] font-black uppercase tracking-widest">
+                                <th class="px-4 py-3 text-center w-12 border-r border-gray-100">#</th>
+                                <th class="px-6 py-3 min-w-[220px] border-r border-gray-100">Nama Siswa</th>
                                 
-                                {{-- MODE HARIAN --}}
                                 @if(strtolower(request('jenis_nilai')) == 'harian')
-                                    <th class="px-1 py-4 border-r text-center" style="width: 70px;">UH 1</th>
-                                    <th class="px-1 py-4 border-r text-center" style="width: 70px;">UH 2</th>
-                                    <th class="px-1 py-4 border-r text-center" style="width: 70px;">UH 3</th>
-                                    <th class="px-1 py-4 border-r text-center" style="width: 70px;">UH 4</th>
-                                    <th class="px-4 py-4 text-center bg-green-50 border-r w-24 font-bold">RATA-RATA</th>
+                                    <th class="px-2 py-3 text-center w-20 border-r border-gray-100 uppercase tracking-tighter text-gray-500">UH 1</th>
+                                    <th class="px-2 py-3 text-center w-20 border-r border-gray-100 uppercase tracking-tighter text-gray-500">UH 2</th>
+                                    <th class="px-2 py-3 text-center w-20 border-r border-gray-100 uppercase tracking-tighter text-gray-500">UH 3</th>
+                                    <th class="px-2 py-3 text-center w-20 border-r border-gray-100 uppercase tracking-tighter text-gray-500">UH 4</th>
+                                    <th class="px-3 py-3 text-center bg-green-50 text-green-700 w-24">Rata²</th>
                                 @endif
 
-                                {{-- MODE UTS / UAS --}}
                                 @if(in_array(strtolower(request('jenis_nilai')), ['uts', 'uas']))
-                                    <th class="px-4 py-4 text-center bg-green-50 border-r w-24 font-bold">SKOR {{ strtoupper(request('jenis_nilai')) }}</th>
+                                    <th class="px-4 py-3 text-center bg-green-50 text-green-700 w-32 uppercase tracking-tighter font-black"> {{ request('jenis_nilai') }}</th>
                                 @endif
 
-                                {{-- MODE NILAI AKHIR (REKAP) --}}
                                 @if(strtolower(request('jenis_nilai')) == 'akhir')
-                                    <th class="px-2 py-4 border-r text-center w-20 bg-blue-50">Harian</th>
-                                    <th class="px-2 py-4 border-r text-center w-20 bg-blue-50">UTS</th>
-                                    <th class="px-2 py-4 border-r text-center w-20 bg-blue-50">UAS</th>
-                                    <th class="px-4 py-4 text-center bg-green-100 border-r w-24 font-bold text-green-800">NILAI AKHIR</th>
-                                    <th class="px-6 py-4 text-left">Capaian Kompetensi (Deskripsi)</th>
+                                    <th class="px-1 py-3 text-center w-16 bg-blue-50/50 font-bold border-r border-white">Harian</th>
+                                    <th class="px-1 py-3 text-center w-16 bg-blue-50/50 font-bold border-r border-white">UTS</th>
+                                    <th class="px-1 py-3 text-center w-16 bg-blue-50/50 font-bold border-r border-white">UAS</th>
+                                    <th class="px-4 py-3 text-center bg-green-100/50 text-green-800 w-24 font-black">Nilai Akhir</th>
+                                    <th class="px-6 py-3 font-bold uppercase text-[8px] tracking-widest">Deskripsi Capaian</th>
                                 @endif
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-gray-50">
                             @foreach($siswaData as $index => $s)
-                            <tr class="hover:bg-gray-50 transition student-row">
-                                <td class="px-4 py-4 border-r text-center text-gray-400 font-bold">{{ $index + 1 }}</td>
-                                <td class="px-6 py-4 border-r font-bold text-gray-800 uppercase text-[11px]">{{ $s->nama }}</td>
+                            <tr class="hover:bg-green-50/10 transition-colors student-row">
+                                <td class="px-4 py-3 text-center text-gray-300 font-bold text-[10px] border-r border-gray-50">{{ $index + 1 }}</td>
+                                <td class="px-6 py-3 font-black text-gray-700 uppercase text-[11px] tracking-tight border-r border-gray-50">{{ $s->nama }}</td>
                                 
-                                {{-- TAMPILAN HARIAN --}}
                                 @if(strtolower(request('jenis_nilai')) == 'harian')
-                                    <td class="px-1 py-2 border-r text-center">
-                                        <input type="number" name="nilai[{{ $s->id }}][uh1]" value="{{ $s->uh1 ?? '' }}" min="0" max="100" class="uh-input w-full max-w-[55px] text-center border-gray-300 rounded text-xs px-1 py-1.5 focus:ring-green-500">
+                                    <td class="px-2 py-2 text-center border-r border-gray-50">
+                                        <input type="number" name="nilai[{{ $s->id }}][uh1]" value="{{ $s->uh1 ?? '' }}" min="0" max="100" 
+                                               class="uh-input w-16 text-center border-gray-200 rounded-md text-[10px] font-bold py-1 focus:ring-green-500 focus:border-green-500 transition-all">
                                     </td>
-                                    <td class="px-1 py-2 border-r text-center">
-                                        <input type="number" name="nilai[{{ $s->id }}][uh2]" value="{{ $s->uh2 ?? '' }}" min="0" max="100" class="uh-input w-full max-w-[55px] text-center border-gray-300 rounded text-xs px-1 py-1.5 focus:ring-green-500">
+                                    <td class="px-2 py-2 text-center border-r border-gray-50">
+                                        <input type="number" name="nilai[{{ $s->id }}][uh2]" value="{{ $s->uh2 ?? '' }}" min="0" max="100" 
+                                               class="uh-input w-16 text-center border-gray-200 rounded-md text-[10px] font-bold py-1 focus:ring-green-500 focus:border-green-500 transition-all">
                                     </td>
-                                    <td class="px-1 py-2 border-r text-center">
-                                        <input type="number" name="nilai[{{ $s->id }}][uh3]" value="{{ $s->uh3 ?? '' }}" min="0" max="100" class="uh-input w-full max-w-[55px] text-center border-gray-300 rounded text-xs px-1 py-1.5 focus:ring-green-500">
+                                    <td class="px-2 py-2 text-center border-r border-gray-50">
+                                        <input type="number" name="nilai[{{ $s->id }}][uh3]" value="{{ $s->uh3 ?? '' }}" min="0" max="100" 
+                                               class="uh-input w-16 text-center border-gray-200 rounded-md text-[10px] font-bold py-1 focus:ring-green-500 focus:border-green-500 transition-all">
                                     </td>
-                                    <td class="px-1 py-2 border-r text-center">
-                                        <input type="number" name="nilai[{{ $s->id }}][uh4]" value="{{ $s->uh4 ?? '' }}" min="0" max="100" class="uh-input w-full max-w-[55px] text-center border-gray-300 rounded text-xs px-1 py-1.5 focus:ring-green-500">
+                                    <td class="px-2 py-2 text-center border-r border-gray-50">
+                                        <input type="number" name="nilai[{{ $s->id }}][uh4]" value="{{ $s->uh4 ?? '' }}" min="0" max="100" 
+                                               class="uh-input w-16 text-center border-gray-200 rounded-md text-[10px] font-bold py-1 focus:ring-green-500 focus:border-green-500 transition-all">
                                     </td>
-                                    <td class="px-4 py-2 bg-green-50/50 text-center border-r">
-                                        <input type="number" name="nilai[{{ $s->id }}][rata_rata]" value="{{ $s->harian ?? '' }}" class="final-input w-16 text-center border-gray-300 rounded-md font-black py-1 bg-white focus:ring-green-600 text-sm" readonly>
+                                    <td class="px-3 py-2 bg-green-50/30 text-center">
+                                        <input type="number" name="nilai[{{ $s->id }}][rata_rata]" value="{{ $s->harian ?? '' }}" 
+                                               class="final-input w-full text-center border-none bg-transparent font-black text-green-700 text-xs pointer-events-none" readonly>
                                     </td>
                                 @endif
 
-                                {{-- TAMPILAN UTS / UAS --}}
                                 @if(in_array(strtolower(request('jenis_nilai')), ['uts', 'uas']))
-                                    <td class="px-4 py-2 bg-green-50/50 text-center border-r">
-                                        <input type="number" name="nilai[{{ $s->id }}][angka]" value="{{ $s->nilai_existing ?? '' }}" class="w-16 text-center border-gray-300 rounded-md font-black py-1 focus:ring-green-600 text-sm" required min="0" max="100">
+                                    <td class="px-4 py-2 bg-green-50/30 text-center">
+                                        <input type="number" name="nilai[{{ $s->id }}][angka]" value="{{ $s->nilai_existing ?? '' }}" 
+                                               class="w-20 text-center border-gray-200 rounded-lg font-black text-xs py-1.5 focus:ring-green-600 shadow-sm" required min="0" max="100">
                                     </td>
                                 @endif
 
-                                {{-- TAMPILAN REKAP AKHIR --}}
                                 @if(strtolower(request('jenis_nilai')) == 'akhir')
-                                    <td class="px-2 py-2 border-r text-center bg-blue-50/30 text-gray-600 text-xs">{{ $s->harian ?? 0 }}</td>
-                                    <td class="px-2 py-2 border-r text-center bg-blue-50/30 text-gray-600 text-xs">{{ $s->uts ?? 0 }}</td>
-                                    <td class="px-2 py-2 border-r text-center bg-blue-50/30 text-gray-600 text-xs">{{ $s->uas ?? 0 }}</td>
-                                    
-                                    <td class="px-4 py-2 bg-green-100/50 text-center border-r font-black text-green-700">
-                                        @php
-                                            // Menghitung nilai akhir sederhana (bisa disesuaikan bobotnya di controller)
-                                            $na = (($s->harian ?? 0) + ($s->uts ?? 0) + ($s->uas ?? 0)) / 3;
-                                        @endphp
+                                    <td class="px-1 py-3 text-center bg-blue-50/20 text-[10px] font-bold text-gray-500 border-r border-white">{{ $s->harian ?? 0 }}</td>
+                                    <td class="px-1 py-3 text-center bg-blue-50/20 text-[10px] font-bold text-gray-500 border-r border-white">{{ $s->uts ?? 0 }}</td>
+                                    <td class="px-1 py-3 text-center bg-blue-50/20 text-[10px] font-bold text-gray-500 border-r border-white">{{ $s->uas ?? 0 }}</td>
+                                    <td class="px-4 py-3 bg-green-100/30 text-center font-black text-green-700 text-xs">
+                                        @php $na = (($s->harian ?? 0) + ($s->uts ?? 0) + ($s->uas ?? 0)) / 3; @endphp
                                         {{ round($na) }}
                                         <input type="hidden" name="nilai[{{ $s->id }}][angka]" value="{{ round($na) }}">
                                     </td>
-
                                     <td class="px-6 py-2">
-                                        <textarea 
-                                            name="nilai[{{ $s->id }}][deskripsi]" 
-                                            rows="2" 
-                                            placeholder="Tulis capaian kompetensi akhir..."
-                                            class="w-full text-[11px] border-gray-200 rounded-md focus:ring-green-500 italic text-gray-600 px-3 py-1.5"
-                                        >{{ $s->deskripsi_existing ?? '' }}</textarea>
+                                        <textarea name="nilai[{{ $s->id }}][deskripsi]" rows="1" placeholder="Catatan kompetensi..." 
+                                                  class="w-full text-[10px] border-gray-100 rounded-lg focus:ring-green-500 italic text-gray-500 px-3 py-1 bg-gray-50/50 resize-none">{{ $s->deskripsi_existing ?? '' }}</textarea>
                                     </td>
                                 @endif
                             </tr>
@@ -153,15 +151,13 @@
                 </div>
             </form>
         @else
-            {{-- Landing Page State --}}
-            <div class="p-20 text-center bg-white">
-                <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 text-green-300">
-                    <i class="fas fa-clipboard-list text-4xl"></i>
+            {{-- STATE KOSONG --}}
+            <div class="py-24 text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-50 rounded-2xl mb-4 text-green-200">
+                    <i class="fas fa-layer-group text-3xl"></i>
                 </div>
-                <h4 class="text-gray-700 font-bold text-lg">Manajemen Nilai Kolektif</h4>
-                <p class="text-gray-400 max-w-md mx-auto mt-2 text-sm">
-                    Pilih jadwal dan jenis nilai untuk mengelola angka nilai dan narasi capaian kompetensi siswa secara efisien.
-                </p>
+                <h4 class="text-sm font-black text-gray-700 uppercase tracking-widest">Panel Input Kolektif</h4>
+                <p class="text-[11px] text-gray-400 mt-1 max-w-xs mx-auto italic tracking-tight">Silakan tentukan jadwal dan jenis nilai untuk mengisi data siswa secara massal.</p>
             </div>
         @endif
     </div>
@@ -170,26 +166,21 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const rows = document.querySelectorAll('.student-row');
-
         rows.forEach(row => {
             const inputs = row.querySelectorAll('.uh-input');
             const finalInput = row.querySelector('.final-input');
-
+            
             if(inputs.length > 0 && finalInput) {
                 inputs.forEach(input => {
                     input.addEventListener('input', () => {
-                        let total = 0;
-                        let count = 0;
-
+                        let total = 0, count = 0;
                         inputs.forEach(i => {
-                            if(i.value !== '') {
-                                total += parseFloat(i.value);
-                                count++;
+                            if(i.value !== '') { 
+                                total += parseFloat(i.value); 
+                                count++; 
                             }
                         });
-
-                        const rataRata = count > 0 ? Math.round(total / count) : 0;
-                        finalInput.value = rataRata;
+                        finalInput.value = count > 0 ? Math.round(total / count) : 0;
                     });
                 });
             }

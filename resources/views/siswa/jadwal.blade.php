@@ -1,114 +1,81 @@
 @extends('layouts.siswa')
 
 @section('content')
-<div class="space-y-10 animate-fade-in">
-    {{-- Header: Dinamis berdasarkan Setting --}}
-    <div class="border-b border-gray-100 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div class="space-y-8 animate-fade-in pb-10">
+    {{-- Header Section --}}
+    <div class="border-b border-gray-100 pb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-            <h2 class="text-3xl font-black text-gray-800 tracking-tight uppercase">Jadwal Pelajaran</h2>
-            <div class="flex items-center gap-2 mt-2">
-                @php
-                    $nama_kelas = auth()->user()->siswa->dataKelas->nama_kelas ?? (auth()->user()->siswa->kelas ?? 'Belum Ditentukan');
-                @endphp
-                
-                <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-3 py-1 rounded-lg uppercase tracking-wider">
-                    Kelas: {{ $nama_kelas }}
-                </span>
-                <span class="text-gray-300 text-xs">•</span>
-                <p class="text-xs text-gray-500 font-bold uppercase tracking-widest">
+            <h2 class="text-2xl font-black text-gray-800 tracking-tighter uppercase italic">Jadwal Pelajaran</h2>
+            <div class="flex items-center gap-2 mt-1">
+                @php $nama_kelas = auth()->user()->siswa->dataKelas->nama_kelas ?? (auth()->user()->siswa->kelas ?? '-'); @endphp
+                <span class="bg-[#064e3b] text-white text-[9px] font-black px-3 py-1 rounded-lg uppercase tracking-widest">Kelas: {{ $nama_kelas }}</span>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
                     Tahun Ajaran {{ $setup->tahun_ajaran ?? '2025/2026' }} 
-                    <span class="text-emerald-500">({{ $setup->semester == 1 ? 'Ganjil' : 'Genap' }})</span>
+                    <span class="text-[#064e3b]">({{ $setup->semester == 1 ? 'Ganjil' : 'Genap' }})</span>
                 </p>
             </div>
         </div>
-
-        {{-- Badge Hari Ini --}}
         <div class="hidden md:block">
-            <span class="bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-tighter">
-                <i class="fa-solid fa-calendar-day mr-1"></i> Hari Ini: {{ \Carbon\Carbon::now()->isoFormat('dddd') }}
+            <span class="bg-amber-50 text-amber-600 border border-amber-100 text-[10px] font-black px-4 py-2 rounded-xl uppercase italic">
+                <i class="fa-solid fa-calendar-day mr-1 text-[#ffb800]"></i> {{ \Carbon\Carbon::now()->isoFormat('dddd') }}
             </span>
         </div>
     </div>
 
-    {{-- Looping Berdasarkan Hari --}}
+    {{-- Looping Hari --}}
     @forelse($jadwals as $hari => $listJadwal)
-        <div class="space-y-5">
-            {{-- Judul Hari --}}
-            <div class="flex items-center gap-4">
-                <div class="h-8 w-1.5 bg-amber-400 rounded-full shadow-sm"></div>
-                <h3 class="text-xl font-black text-gray-800 uppercase tracking-tighter italic">
-                    {{ $hari }}
-                </h3>
+        <div class="space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="h-6 w-1.5 bg-[#ffb800] rounded-full shadow-sm"></div>
+                <h3 class="text-lg font-black text-gray-800 uppercase italic tracking-tighter">{{ $hari }}</h3>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 @foreach($listJadwal as $jadwal)
-                <div class="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-100 hover:shadow-xl hover:border-amber-400/30 transition-all duration-300 group relative overflow-hidden">
-                    {{-- Decorative Element --}}
-                    <div class="absolute -right-4 -top-4 h-16 w-16 bg-gray-50 rounded-full group-hover:bg-amber-50 transition-colors duration-300"></div>
-
-                    <div class="flex justify-between items-start mb-5 relative">
-                        <div class="flex flex-col">
-                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Waktu Belajar</span>
-                            <span class="bg-gray-900 text-white text-xs font-bold px-4 py-1.5 rounded-xl shadow-sm">
-                                {{ date('H:i', strtotime($jadwal->jam_mulai)) }} — {{ date('H:i', strtotime($jadwal->jam_selesai)) }}
-                            </span>
-                        </div>
-                        <div class="h-10 w-10 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300 group-hover:text-amber-500 group-hover:bg-white transition-all duration-300 shadow-sm">
-                            <i class="fa-solid fa-book-open text-lg"></i>
-                        </div>
+                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 hover:shadow-lg hover:border-[#ffb800]/30 transition-all group overflow-hidden relative">
+                    {{-- Badge Waktu --}}
+                    <div class="flex justify-between items-center mb-4 relative z-10">
+                        <span class="bg-gray-900 text-white text-[10px] font-black px-3 py-1 rounded-lg">
+                            {{ date('H:i', strtotime($jadwal->jam_mulai)) }} — {{ date('H:i', strtotime($jadwal->jam_selesai)) }}
+                        </span>
+                        <i class="fa-solid fa-book-open text-gray-100 group-hover:text-[#ffb800]/20 text-2xl transition-colors"></i>
                     </div>
                     
-                    {{-- Judul Mata Pelajaran --}}
-                    <h3 class="text-xl font-extrabold text-gray-800 leading-none tracking-tight group-hover:text-emerald-700 transition-colors">
-                        {{ $jadwal->mapel->nama_mapel ?? 'Mata Pelajaran' }}
+                    {{-- Info Mapel --}}
+                    <h3 class="text-lg font-black text-gray-800 leading-tight uppercase group-hover:text-[#064e3b] transition-colors">
+                        {{ $jadwal->mapel->nama_mapel ?? 'Mapel' }}
                     </h3>
 
-                    <div class="mt-6 space-y-4">
-                        {{-- Nama Guru --}}
+                    <div class="mt-4 pt-4 border-t border-gray-50 space-y-3">
+                        @foreach([
+                            ['icon' => 'fa-chalkboard-user', 'bg' => 'bg-emerald-50', 'text' => 'text-emerald-600', 'label' => 'Guru', 'val' => $jadwal->guru->nama_guru ?? ($jadwal->guru->nama ?? '-')],
+                            ['icon' => 'fa-location-dot', 'bg' => 'bg-amber-50', 'text' => 'text-amber-600', 'label' => 'Ruang', 'val' => $jadwal->ruangan ?? 'Ruang ' . $nama_kelas]
+                        ] as $item)
                         <div class="flex items-center gap-3">
-                            <div class="h-9 w-9 rounded-xl bg-emerald-50 flex items-center justify-center border border-emerald-100">
-                                <i class="fa-solid fa-chalkboard-user text-emerald-600 text-xs"></i>
+                            <div class="h-8 w-8 rounded-lg {{ $item['bg'] }} flex items-center justify-center border border-black/5">
+                                <i class="fa-solid {{ $item['icon'] }} {{ $item['text'] }} text-[10px]"></i>
                             </div>
-                            <div>
-                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Guru Pengajar</p>
-                                <p class="text-[12px] text-gray-700 font-bold leading-tight">
-                                    {{ $jadwal->guru->nama_guru ?? ($jadwal->guru->nama ?? 'Guru Belum Ditentukan') }}
-                                </p>
+                            <div class="min-w-0">
+                                <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mb-0.5">{{ $item['label'] }}</p>
+                                <p class="text-[11px] text-gray-700 font-bold leading-tight truncate uppercase">{{ $item['val'] }}</p>
                             </div>
                         </div>
-
-                        {{-- Lokasi Ruangan --}}
-                        <div class="flex items-center gap-3">
-                            <div class="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center border border-amber-100">
-                                <i class="fa-solid fa-location-dot text-amber-600 text-xs"></i>
-                            </div>
-                            <div>
-                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Ruang / Lokasi</p>
-                                <p class="text-[11px] text-amber-600 font-extrabold uppercase tracking-tight">
-                                    {{ $jadwal->ruangan ?? 'Ruang Kelas ' . $nama_kelas }}
-                                </p>
-                            </div>
-                        </div>
+                        @endforeach
                     </div>
                 </div>
                 @endforeach
             </div>
         </div>
     @empty
-        {{-- State Kosong --}}
-        <div class="bg-white p-24 rounded-[3rem] text-center border-4 border-dashed border-gray-50 flex flex-col items-center">
-            <div class="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 text-gray-200">
-                <i class="fa-solid fa-calendar-xmark text-4xl"></i>
-            </div>
-            <p class="text-gray-400 font-black uppercase tracking-[0.2em] text-sm">Jadwal Belum Tersedia</p>
-            <p class="text-gray-300 text-xs mt-2 font-bold uppercase">Silahkan hubungi bagian kurikulum atau wali kelas.</p>
+        <div class="py-20 text-center bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200">
+            <i class="fa-solid fa-calendar-xmark text-4xl text-gray-200 mb-4"></i>
+            <p class="text-gray-400 font-black uppercase text-xs tracking-widest">Jadwal Belum Tersedia</p>
         </div>
     @endforelse
 </div>
 
 <style>
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 </style>
 @endsection

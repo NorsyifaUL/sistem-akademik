@@ -17,7 +17,7 @@ class SiswaController extends Controller
     /**
      * Dashboard Siswa
      */
-    public function dashboard()
+public function dashboard()
     {
         $user = Auth::user();
         $siswa = Siswa::where('user_id', $user->id)->first();
@@ -36,9 +36,18 @@ class SiswaController extends Controller
             ->orderBy('jam_mulai', 'asc')
             ->get();
 
-        // Statistik
+        // --- UPDATE BAGIAN STATISTIK DISINI ---
         $absensiHariIni = Absensi::where('siswa_id', $siswaId)->whereDate('tanggal', Carbon::today())->count();
-        $totalAbsensi = Absensi::where('siswa_id', $siswaId)->count();
+        
+        // Ambil semua data absensi siswa untuk menghitung distribusi status
+        $semuaAbsensi = Absensi::where('siswa_id', $siswaId)->get();
+
+        $totalHadir = $semuaAbsensi->where('status', 'Hadir')->count();
+        $totalIzinSakit = $semuaAbsensi->whereIn('status', ['Izin', 'Sakit'])->count();
+        $totalAlpa = $semuaAbsensi->whereIn('status', ['Alpa', 'Alfa'])->count();
+        $totalAbsensi = $semuaAbsensi->count(); // Menghasilkan angka 7 (Total Sesi)
+        // --------------------------------------
+
         $totalNilai = Nilai::where('siswa_id', $siswaId)->count();
 
         // Riwayat Singkat
@@ -59,9 +68,11 @@ class SiswaController extends Controller
                         ->take(5)
                         ->get();
 
+        // Pastikan variabel baru dimasukkan ke dalam compact()
         return view('siswa.dashboard', compact(
-            'siswa', 'absensiHariIni', 'totalAbsensi', 'totalNilai', 
-            'absensi', 'nilai', 'jadwalHariIni', 'hariIni', 'setting', 'notifikasis'
+            'siswa', 'absensiHariIni', 'totalHadir', 'totalIzinSakit', 
+            'totalAlpa', 'totalAbsensi', 'totalNilai', 'absensi', 
+            'nilai', 'jadwalHariIni', 'hariIni', 'setting', 'notifikasis'
         ));
     }
 

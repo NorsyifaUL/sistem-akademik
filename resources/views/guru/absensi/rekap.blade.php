@@ -1,61 +1,55 @@
 @extends('layouts.guru')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 py-8 font-academic">
-    {{-- Breadcrumb --}}
-    <nav class="flex mb-5 text-gray-500 text-[9px] uppercase tracking-[0.2em] font-black" aria-label="Breadcrumb">
-        <ol class="inline-flex items-center space-x-2">
-            <li><a href="{{ route('guru.dashboard') }}" class="hover:text-green-700 transition-colors">Dashboard</a></li>
-            <li><span class="text-gray-300">/</span></li>
-            <li class="text-gray-800 tracking-tighter">Rekapitulasi</li>
-        </ol>
-    </nav>
-
+<div class="max-w-7xl mx-auto px-2 py-3 font-academic">
+    
     {{-- ALERT STATUS --}}
     @if(session('success'))
-        <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 text-green-700 text-[10px] font-black uppercase tracking-widest animate-pulse">
+        <div class="mb-4 p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 text-[10px] font-black uppercase tracking-widest animate-pulse flex items-center gap-3 rounded-r-xl shadow-sm">
+            <i class="fas fa-check-circle text-lg"></i>
             {{ session('success') }}
         </div>
     @endif
 
     {{-- CARD UTAMA --}}
-    <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-        <div class="h-1.5 bg-green-600 w-full"></div>
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+        {{-- Garis Atas Hijau Solid --}}
+        <div class="h-1.5 bg-emerald-600 w-full"></div>
 
-        {{-- 1. HEADER --}}
-        <div class="p-8 border-b border-gray-100">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                    <h2 class="text-2xl font-black text-gray-800 uppercase tracking-tighter italic">Rekapitulasi Presensi</h2>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">Laporan Kehadiran Siswa — <span class="text-green-600 italic">Mode Pantauan Guru</span></p>
+        {{-- 1. HEADER (Disederhanakan) --}}
+        <div class="px-6 py-5 border-b border-gray-100 bg-white">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-50">
+                    <i class="fa-solid fa-file-lines text-xl"></i>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="bg-slate-100 text-slate-400 text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-slate-200">
-                        <i class="fas fa-lock mr-1"></i> Read Only
-                    </span>
+                <div>
+                    <h2 class="text-xl font-black text-gray-900 uppercase tracking-tighter italic leading-none">Rekapitulasi <span class="text-emerald-600 not-italic">Presensi</span></h2>
+                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-[0.2em] mt-1">
+                        Laporan Kehadiran — <span class="italic text-slate-500">Mode Pantauan Guru</span>
+                    </p>
                 </div>
             </div>
         </div>
 
-        {{-- 2. ULTRA-CLEAN FILTER --}}
-        <div class="px-8 py-6 bg-gray-50/50 border-b border-gray-100">
-            <form action="{{ route('guru.absensi.rekap') }}" method="GET" class="flex flex-wrap items-end gap-4">
+        {{-- 2. FILTER & SEARCH --}}
+        <div class="px-6 py-5 bg-slate-50/50 border-b border-gray-100">
+            <form action="{{ route('guru.absensi.rekap') }}" method="GET" class="flex flex-wrap items-end gap-3">
                 <div class="w-32">
-                    <label class="block text-[9px] text-gray-400 uppercase font-black tracking-widest mb-2 ml-1 italic">Mode Cari</label>
-                    <select id="modeSelect" name="mode" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-green-700 outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition-all cursor-pointer">
+                    <label class="block text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1.5 ml-1 italic">Mode Cari</label>
+                    <select id="modeSelect" name="mode" class="w-full bg-white border-2 border-slate-100 rounded-xl px-3 py-2 text-[10px] font-black text-emerald-700 outline-none focus:border-emerald-500 shadow-sm transition-all cursor-pointer uppercase">
                         <option value="daily" {{ request('mode') == 'daily' ? 'selected' : '' }}>Harian</option>
                         <option value="monthly" {{ request('mode') == 'monthly' ? 'selected' : '' }}>Bulanan</option>
                     </select>
                 </div>
 
-                <div class="w-44" id="dailyInputWrapper">
-                    <label class="block text-[9px] text-gray-400 uppercase font-black tracking-widest mb-2 ml-1 italic">Pilih Tanggal</label>
-                    <input type="date" name="tanggal" value="{{ request('tanggal') ?? date('Y-m-d') }}" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-gray-700 outline-none focus:ring-2 focus:ring-green-500 shadow-sm">
+                <div class="w-40" id="dailyInputWrapper">
+                    <label class="block text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1.5 ml-1 italic">Pilih Tanggal</label>
+                    <input type="date" name="tanggal" value="{{ request('tanggal') ?? date('Y-m-d') }}" class="w-full bg-white border-2 border-slate-100 rounded-xl px-3 py-2 text-[10px] font-black text-slate-700 outline-none focus:border-emerald-500 shadow-sm">
                 </div>
 
-                <div class="w-44 hidden" id="monthlyInputWrapper">
-                    <label class="block text-[9px] text-gray-400 uppercase font-black tracking-widest mb-2 ml-1 italic">Pilih Bulan</label>
-                    <select name="bulan" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-gray-700 outline-none focus:ring-2 focus:ring-green-500 shadow-sm">
+                <div class="w-40 hidden" id="monthlyInputWrapper">
+                    <label class="block text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1.5 ml-1 italic">Pilih Bulan</label>
+                    <select name="bulan" class="w-full bg-white border-2 border-slate-100 rounded-xl px-3 py-2 text-[10px] font-black text-slate-700 outline-none focus:border-emerald-500 shadow-sm uppercase">
                         @for ($i = 1; $i <= 12; $i++)
                             @php $m = str_pad($i, 2, '0', STR_PAD_LEFT); @endphp
                             <option value="{{ $m }}" {{ (request('bulan') ?? date('m')) == $m ? 'selected' : '' }}>
@@ -66,11 +60,10 @@
                 </div>
 
                 <div class="w-32">
-                    <label class="block text-[9px] text-gray-400 uppercase font-black tracking-widest mb-2 ml-1 italic">Kelas</label>
-                    <select name="kelas" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-[11px] font-bold text-gray-700 outline-none focus:ring-2 focus:ring-green-500 shadow-sm cursor-pointer">
+                    <label class="block text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1.5 ml-1 italic">Kelas</label>
+                    <select name="kelas" class="w-full bg-white border-2 border-slate-100 rounded-xl px-3 py-2 text-[10px] font-black text-slate-700 outline-none focus:border-emerald-500 shadow-sm cursor-pointer uppercase">
                         <option value="">Semua</option>
                         @foreach($kelasList as $k)
-                            {{-- Menggunakan $k->nama_kelas jika sesuai database, atau tetap $k->kelas jika itu kolomnya --}}
                             <option value="{{ $k->nama_kelas ?? $k->kelas }}" {{ request('kelas') == ($k->nama_kelas ?? $k->kelas) ? 'selected' : '' }}>
                                 {{ $k->nama_kelas ?? $k->kelas }}
                             </option>
@@ -78,15 +71,18 @@
                     </select>
                 </div>
 
-                <button type="submit" class="bg-green-700 hover:bg-green-800 text-white px-8 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md active:scale-95 h-[42px]">
-                    Filter
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center gap-2">
+                    <i class="fas fa-filter text-[8px]"></i> Filter
                 </button>
 
                 <div class="flex-grow"></div>
 
                 <div class="w-full lg:w-48 text-right">
-                    <label class="block text-[9px] text-gray-400 uppercase font-black tracking-widest mb-2 mr-1 italic">Cari Nama</label>
-                    <input type="text" id="searchInput" placeholder="KETIK NAMA..." class="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-[10px] font-black text-green-700 placeholder-gray-300 outline-none shadow-sm focus:ring-2 focus:ring-green-500 transition-all">
+                    <label class="block text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1.5 mr-1 italic">Cari Nama</label>
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="CARI SISWA..." class="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-2 text-[9px] font-black text-emerald-700 placeholder-slate-300 outline-none shadow-sm focus:border-emerald-500 transition-all uppercase">
+                        <i class="fas fa-search absolute right-3 top-2.5 text-slate-300 text-[10px]"></i>
+                    </div>
                 </div>
             </form>
         </div>
@@ -95,86 +91,89 @@
         <div class="overflow-x-auto">
             <table class="w-full border-collapse text-left" id="absensiTable">
                 <thead>
-                    <tr class="bg-white text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
-                        <th class="px-8 py-5 text-center w-16">No</th>
-                        <th class="px-8 py-5">Identitas Siswa</th>
-                        <th class="px-8 py-5 text-center">Status Absen</th>
-                        <th class="px-8 py-5 text-center">Notifikasi WA</th>
-                        <th class="px-8 py-5 text-center">Tgl Presensi</th>
-                        {{-- Kolom Aksi sudah dihapus dari sini --}}
+                    <tr class="text-[9px] font-black text-slate-400 uppercase tracking-[0.15em] border-b border-slate-50 bg-slate-50/30">
+                        <th class="px-6 py-4 text-center w-16 italic">No.</th>
+                        <th class="px-6 py-4">Identitas Siswa</th>
+                        <th class="px-6 py-4 text-center">Status Kehadiran</th>
+                        <th class="px-6 py-4 text-center">Notifikasi WA</th>
+                        <th class="px-6 py-4 text-center">Tgl Presensi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50" id="tableBody">
+                <tbody class="divide-y divide-slate-50" id="tableBody">
                     @php $no = 1; @endphp
                     @forelse($rekaps as $r)
                         @if(!$r->siswa) @continue @endif
 
-                        <tr class="hover:bg-green-50/5 transition-all group row-siswa">
-                            <td class="px-8 py-6 text-center text-gray-300 font-black text-xs italic group-hover:text-green-600">
+                        <tr class="hover:bg-emerald-50/10 transition-all group row-siswa">
+                            <td class="px-6 py-5 text-center text-slate-300 font-black text-[10px] font-mono italic group-hover:text-emerald-600 transition-colors">
                                 {{ str_pad($no++, 2, '0', STR_PAD_LEFT) }}
                             </td>
-                            <td class="px-8 py-6">
+                            <td class="px-6 py-5">
                                 <div class="flex flex-col">
-                                    <span class="text-sm font-black text-gray-800 uppercase nama-siswa">{{ $r->siswa->nama }}</span>
-                                    <span class="text-[9px] text-gray-400 font-black tracking-widest uppercase italic">
+                                    <span class="text-[11px] font-black text-slate-700 uppercase tracking-tight italic group-hover:text-emerald-700 transition-colors nama-siswa">{{ $r->siswa->nama }}</span>
+                                    <span class="text-[8px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">
                                         NISN: {{ $r->siswa->nisn }} • Kelas {{ $r->siswa->kelas }}
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-8 py-6 text-center">
+                            <td class="px-6 py-5 text-center">
                                 @php 
                                     $st = strtoupper($r->status);
-                                    $color = match($st) {
-                                        'HADIR', 'H' => 'bg-green-50 text-green-600 border-green-100',
-                                        'ALPA', 'A' => 'bg-red-50 text-red-600 border-red-100',
-                                        'SAKIT', 'S' => 'bg-yellow-50 text-yellow-600 border-yellow-100',
-                                        'IZIN', 'I' => 'bg-blue-50 text-blue-600 border-blue-100',
-                                        default => 'bg-gray-50 text-gray-600 border-gray-100',
+                                    $statusStyle = match($st) {
+                                        'HADIR', 'H' => ['text' => 'text-emerald-700', 'dot' => 'bg-emerald-500', 'label' => 'Hadir'],
+                                        'ALPA', 'A'  => ['text' => 'text-rose-700', 'dot' => 'bg-rose-500', 'label' => 'Alpa'],
+                                        'SAKIT', 'S' => ['text' => 'text-amber-700', 'dot' => 'bg-amber-500', 'label' => 'Sakit'],
+                                        'IZIN', 'I'  => ['text' => 'text-blue-700', 'dot' => 'bg-blue-500', 'label' => 'Izin'],
+                                        default      => ['text' => 'text-slate-500', 'dot' => 'bg-slate-400', 'label' => $st],
                                     };
                                 @endphp
-                                <span class="px-3 py-1.5 rounded-full text-[9px] font-black uppercase border {{ $color }} shadow-sm">
-                                    {{ $st }}
-                                </span>
+                                
+                                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-100 shadow-sm">
+                                    <span class="relative flex h-2 w-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full {{ $statusStyle['dot'] }} opacity-20"></span>
+                                        <span class="relative inline-flex rounded-full h-2 w-2 {{ $statusStyle['dot'] }}"></span>
+                                    </span>
+                                    <span class="text-[9px] font-black uppercase tracking-widest {{ $statusStyle['text'] }}">
+                                        {{ $statusStyle['label'] }}
+                                    </span>
+                                </div>
                             </td>
 
-                            <td class="px-8 py-6 text-center">
+                            <td class="px-6 py-5 text-center">
                                 @if(in_array(strtoupper($r->status), ['ALPA', 'A']))
                                     <div class="flex flex-col items-center gap-1">
                                         @if($r->status_wa == 'sent')
-                                            <i class="fas fa-check-double text-green-500 text-[10px]"></i>
-                                            <span class="text-[8px] font-black text-green-600 uppercase tracking-tighter">Terkirim</span>
+                                            <i class="fas fa-check-double text-emerald-500 text-[10px]"></i>
+                                            <span class="text-[7px] font-black text-emerald-600 uppercase tracking-tighter">Terkirim</span>
                                         @elseif($r->status_wa == 'failed')
-                                            <i class="fas fa-exclamation-circle text-red-500 text-[10px]"></i>
-                                            <span class="text-[8px] font-black text-red-600 uppercase tracking-tighter mb-1">Gagal</span>
-                                            {{-- Resend tetap ada karena ini fungsi teknis, bukan perubahan data --}}
+                                            <i class="fas fa-exclamation-circle text-rose-500 text-[10px]"></i>
                                             <form action="{{ route('guru.absensi.resend', $r->id) }}" method="POST">
                                                 @csrf
-                                                <button type="submit" class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-tighter hover:bg-red-700 hover:text-white transition-all shadow-sm">
+                                                <button type="submit" class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-tighter hover:bg-rose-700 hover:text-white transition-all">
                                                     Resend <i class="fas fa-sync-alt ml-0.5"></i>
                                                 </button>
                                             </form>
                                         @else
-                                            <i class="fas fa-clock text-gray-300 text-[10px]"></i>
-                                            <span class="text-[8px] font-black text-gray-300 uppercase tracking-tighter">Pending</span>
+                                            <i class="fas fa-circle-notch fa-spin text-slate-200 text-[10px]"></i>
+                                            <span class="text-[7px] font-black text-slate-300 uppercase tracking-tighter">Proses</span>
                                         @endif
                                     </div>
                                 @else
-                                    <span class="text-gray-200">—</span>
+                                    <span class="text-slate-200 text-[10px]">——</span>
                                 @endif
                             </td>
 
-                            <td class="px-8 py-6 text-center text-[11px] font-black text-gray-500">
+                            <td class="px-6 py-5 text-center text-[10px] font-black text-slate-500 font-mono tracking-tighter">
                                 {{ \Carbon\Carbon::parse($r->tanggal)->translatedFormat('d/m/Y') }}
                             </td>
-                            {{-- Kolom <td> Aksi sudah dihapus dari sini --}}
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-8 py-20 text-center text-[10px] font-black text-gray-300 uppercase italic tracking-widest">Tidak ada data untuk periode ini</td>
+                            <td colspan="5" class="px-6 py-24 text-center text-[10px] font-black text-slate-300 uppercase italic tracking-[0.2em]">Data Rekapitulasi Tidak Tersedia</td>
                         </tr>
                     @endforelse
                     <tr id="noResultsRow" style="display: none;">
-                        <td colspan="5" class="px-8 py-20 text-center text-[10px] font-black text-gray-400 uppercase italic">Siswa tidak ditemukan</td>
+                        <td colspan="5" class="px-6 py-24 text-center text-[10px] font-black text-slate-400 uppercase italic tracking-widest">Pencarian Siswa Tidak Ditemukan</td>
                     </tr>
                 </tbody>
             </table>
