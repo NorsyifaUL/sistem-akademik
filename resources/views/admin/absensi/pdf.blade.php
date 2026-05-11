@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <title>Rekap Bulanan Absensi - Sman 1 Jejangkit</title>
     <style>
+        @page {
+            margin: 1cm;
+        }
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
             font-size: 9px; 
@@ -12,25 +15,45 @@
             margin: 0;
             padding: 0;
         }
-        .header {
-            text-align: center;
+        
+        /* Header */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-bottom: 3px double #000;
             margin-bottom: 15px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 5px;
-            position: relative;
         }
-        .header h1 {
-            text-transform: uppercase;
-            font-size: 12px;
+        .header-table td {
+            vertical-align: middle;
+            padding-bottom: 10px;
+        }
+        .logo-cell {
+            width: 80px; 
+            text-align: left;
+        }
+        .logo-img {
+            width: 65px;
+            height: auto;
+        }
+        .text-cell {
+            text-align: center;
+            padding-right: 80px;
+        }
+        .text-cell h1 {
             margin: 0;
+            font-size: 13px;
+            text-transform: uppercase;
+            font-weight: normal;
         }
-        .header .school-name {
-            font-size: 16px;
+        .text-cell .school-name {
+            font-size: 18px;
             font-weight: bold;
             margin: 2px 0;
             display: block;
             text-transform: uppercase;
         }
+
+        /* Layout Informasi */
         .info-table {
             width: 100%;
             margin-bottom: 10px;
@@ -41,6 +64,8 @@
             font-size: 8px;
             width: 80px;
         }
+
+        /* Tabel Utama */
         .main-table {
             width: 100%;
             border-collapse: collapse;
@@ -57,54 +82,89 @@
             padding: 4px 2px;
             text-align: center;
         }
-        .text-left { text-align: left; padding-left: 5px !important; }
-        .font-bold { font-weight: bold; }
+
+        .col-nama {
+            text-align: left !important;
+            padding-left: 8px !important;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
         .text-red { color: #8b0000; font-weight: bold; }
         
+        /* FOOTER & TANDA TANGAN (PERBAIKAN JARAK) */
         .footer {
-            margin-top: 20px;
+            margin-top: 25px;
             width: 100%;
         }
         .signature-box {
             float: right;
-            width: 200px;
+            width: 220px;
             text-align: center;
         }
-        .signature-space { height: 40px; }
+        .signature-box p {
+            margin: 0; /* Menghapus jarak bawaan antar paragraf */
+            padding: 0;
+        }
+        .signature-box .place-date {
+            margin-bottom: 2px;
+        }
+        .signature-box .role-title {
+            font-weight: bold;
+            margin-top: 1px; /* Jarak rapat antara Mengetahui dan Kepala Sekolah */
+        }
+        .signature-space { 
+            height: 55px; /* Ruang untuk tanda tangan */
+        }
+        .signature-name {
+            font-weight: bold;
+            text-decoration: underline;
+            text-transform: uppercase;
+        }
+        .signature-nip {
+            margin-top: 1px; /* Jarak rapat antara Nama dan NIP */
+        }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Laporan Rekapitulasi Absensi Bulanan Siswa</h1>
-        <span class="school-name">Sman 1 Jejangkit</span>
-    </div>
+    <table class="header-table">
+        <tr>
+            <td class="logo-cell">
+                <img src="{{ public_path('logo Smanja.png') }}" class="logo-img">
+            </td>
+            <td class="text-cell">
+                <h1>Laporan Rekapitulasi Absensi Bulanan Siswa</h1>
+                <span class="school-name">SMA Negeri 1 Jejangkit</span>
+            </td>
+        </tr>
+    </table>
 
     <table class="info-table">
         <tr>
             <td class="info-label">Bulan/Tahun</td>
-            <td>: {{ $bulan_teks }} {{ $tahun }}</td>
-            <td class="info-label">Kelas</td>
-            <td>: {{ $kelas }}</td>
+            <td>: {{ strtoupper($bulan_teks) }} {{ $tahun }}</td>
         </tr>
         <tr>
-            <td class="info-label">Dicetak Pada</td>
-            <td colspan="3">: {{ date('d/m/Y H:i') }}</td>
+            <td class="info-label">Kelas</td>
+            <td>: {{ strtoupper($kelas) }}</td>
         </tr>
     </table>
 
     <table class="main-table">
         <thead>
             <tr>
-                <th rowspan="2" width="20">No</th>
-                <th rowspan="2">Nama Siswa</th>
-                <th colspan="{{ $jumlah_hari }}">Tanggal</th>
-                <th colspan="4">Total</th> </tr>
+                <th rowspan="2" width="25">NO</th>
+                <th rowspan="2">NAMA LENGKAP SISWA</th>
+                <th colspan="{{ $jumlah_hari }}">TANGGAL</th>
+                <th colspan="4">TOTAL</th> 
+            </tr>
             <tr>
                 @for($i = 1; $i <= $jumlah_hari; $i++)
-                    <th width="15">{{ $i }}</th>
+                    <th width="12">{{ $i }}</th>
                 @endfor
-                <th width="15">H</th> <th width="15">S</th>
+                <th width="15">H</th> 
+                <th width="15">S</th>
                 <th width="15">I</th>
                 <th width="15">A</th>
             </tr>
@@ -113,7 +173,8 @@
             @foreach($data as $key => $row)
             <tr>
                 <td>{{ $key + 1 }}</td>
-                <td class="text-left font-bold">{{ strtoupper($row['nama']) }}</td>
+                <td class="col-nama">{{ $row['nama'] }}</td>
+                
                 @for($i = 1; $i <= $jumlah_hari; $i++)
                     @php 
                         $st = $row['hari'][$i];
@@ -123,7 +184,9 @@
                         {{ $st == '.' ? '' : $st }}
                     </td>
                 @endfor
-                <td>{{ $row['total']['H'] }}</td> <td>{{ $row['total']['S'] }}</td>
+
+                <td style="font-weight: bold;">{{ $row['total']['H'] }}</td> 
+                <td>{{ $row['total']['S'] }}</td>
                 <td>{{ $row['total']['I'] }}</td>
                 <td class="text-red">{{ $row['total']['A'] }}</td>
             </tr>
@@ -133,15 +196,16 @@
 
     <div class="footer">
         <div class="signature-box">
-            <p>Jejangkit, {{ date('d F Y') }}</p>
+            <p class="place-date">Jejangkit, {{ date('d F Y') }}</p>
             <p>Mengetahui,</p>
-            <p class="font-bold">Kepala Sekolah</p>
+            <p class="role-title">Kepala Sekolah</p>
+            
             <div class="signature-space"></div>
-            <p class="font-bold" style="text-decoration: underline; margin-bottom: 2px;">
-                {{ $setting->nama_kepsek ?? '..........................' }}
-            </p>
-            <p style="margin-top: 0;">NIP. {{ $setting->nip_kepsek ?? '-' }}</p>
+            
+            <p class="signature-name">{{ $setting->nama_kepsek ?? '..........................' }}</p>
+            <p class="signature-nip">NIP. {{ $setting->nip_kepsek ?? '-' }}</p>
         </div>
+        <div style="clear: both;"></div>
     </div>
 
 </body>
