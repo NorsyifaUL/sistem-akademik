@@ -112,7 +112,8 @@
                                 <div class="flex flex-col">
                                     <span class="text-[11px] font-black text-slate-700 uppercase tracking-tight italic group-hover:text-emerald-700 transition-colors nama-siswa">{{ $r->siswa->nama }}</span>
                                     <span class="text-[8px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">
-                                        NISN: {{ $r->siswa->nisn }} • Kelas {{ $r->siswa->kelas }}
+                                        {{-- PERBAIKAN DI SINI: Memanggil properti nama_kelas secara spesifik agar tidak muncul JSON --}}
+                                        NISN: {{ $r->siswa->nisn }} • Kelas {{ $r->siswa->dataKelas->nama_kelas ?? $r->siswa->kelas }}
                                     </span>
                                 </div>
                             </td>

@@ -14,13 +14,12 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class RaportController extends Controller
 {
     /**
-     * Menambahkan Middleware Constructor 
-     * Ini akan memastikan semua fungsi di dalam controller ini 
-     * hanya bisa diakses jika is_wali_kelas == 1
+     * Middleware Constructor
      */
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
+            // Memastikan user adalah Wali Kelas
             if (Auth::user()->is_wali_kelas != 1) {
                 return redirect()->route('guru.dashboard')
                     ->with('error', 'Akses Dibatalkan: Anda tidak memiliki otoritas sebagai Wali Kelas.');
@@ -30,13 +29,12 @@ class RaportController extends Controller
     }
 
     /**
-     * Menampilkan daftar siswa (Hanya untuk Wali Kelas)
+     * Menampilkan daftar siswa berdasarkan kelas yang diampu
      */
     public function index()
     {
         $user = Auth::user();
 
-        // Double Check: Memastikan kolom wali_kelas di tabel users tidak kosong
         if (empty($user->wali_kelas)) {
             return redirect()->route('guru.dashboard')
                 ->with('error', 'Data Wali Kelas Anda belum disetting oleh Admin.');
@@ -44,12 +42,12 @@ class RaportController extends Controller
 
         $setting = Setting::first() ?? new Setting();
         $namaKelasUser = trim($user->wali_kelas);
-
-        // Ambil info kelas untuk header halaman
+        
+        // Cari info kelas untuk mendapatkan data tambahan jika diperlukan
         $infoKelas = Kelas::where('nama_kelas', $namaKelasUser)->first();
 
-        // Kunci data: Hanya ambil siswa yang nama kelasnya sesuai dengan user login
-        $siswas = Siswa::where('kelas', $namaKelasUser)
+        // Mengambil siswa yang terdaftar di kelas wali kelas tersebut
+        $siswas = Siswa::where('kelas', 'LIKE', '%' . $namaKelasUser . '%')
             ->orderBy('nama', 'asc')
             ->get();
 
@@ -59,78 +57,92 @@ class RaportController extends Controller
     /**
      * Proses Cetak PDF Raport
      */
-    public function cetak($siswaId)
+    public function cetak(int $siswaId)
     {
         $user = Auth::user(); 
         $siswa = Siswa::findOrFail($siswaId);
         
-        // Proteksi Tambahan: Mencegah manipulasi URL ID Siswa dari kelas lain
+        // Proteksi Keamanan: Wali kelas hanya bisa cetak raport kelasnya sendiri
         if (trim($siswa->kelas) !== trim($user->wali_kelas)) {
-            abort(403, 'Tindakan Ilegal: Anda hanya diizinkan mencetak raport kelas ' . $user->wali_kelas);
+            abort(403, 'Tindakan Ilegal: Anda hanya diizinkan mencetak raport siswa di kelas ' . $user->wali_kelas);
         }
 
         $setting = Setting::first() ?? new Setting();
+        $semesterAktif = trim($setting->semester ?? 'Ganjil');
 
-        // Load semua record terkait siswa
+        // Ambil semua record nilai siswa pada semester aktif
         $allRecords = Nilai::with(['jadwal.mapel'])
             ->where('siswa_id', $siswa->id)
+            ->where('semester', $semesterAktif)
             ->get();
 
-        // Filter Akademik
-        $dataRaport = $allRecords->whereIn('jenis', ['harian', 'uts', 'uas'])
-            ->groupBy('jadwal_id')
-            ->map(function ($items) {
-                $item = $items->first();
+        /**
+         * 1. LOGIKA UTAMA: Ambil Nilai Akhir & Deskripsi Capaian
+         */
+        $dataRaport = $allRecords->where('jenis', 'rekap')
+            ->map(function ($item) {
                 return [
                     'mapel' => $item->jadwal->mapel->nama_mapel ?? 'Mata Pelajaran', 
-                    'akhir' => round($items->avg('nilai')), 
-                    'capaian_kompetensi' => 'Menunjukkan penguasaan yang sangat baik dalam memahami materi.'
+                    'akhir' => $item->nilai,
+                    'capaian_kompetensi' => $item->keterangan ?? 'Peserta didik telah menunjukkan progres belajar sesuai kriteria yang ditetapkan.' 
                 ];
             })->values();
 
-        // Filter Sikap
+        /**
+         * 2. Filter Nilai Sikap
+         */
         $dataSikap = $allRecords->where('jenis', 'sikap')->map(function($s) {
             return [
                 'aspek' => $s->aspek,
                 'predikat' => $s->predikat ?? 'BAIK',
-                'keterangan' => $s->keterangan
+                'keterangan' => $s->keterangan ?? 'Menunjukkan sikap yang positif dalam kegiatan pembelajaran.'
             ];
         })->values();
 
-        // Filter Eskul
-        $dataEskul = $allRecords->where('jenis', 'eskul')->map(function($e) {
+        /**
+         * 3. Filter Nilai Ekstrakurikuler
+         */
+        // Mapping eskul agar variabel di blade ($eskul) cocok dengan controller ($dataEskul)
+        $eskul = $allRecords->where('jenis', 'eskul')->map(function($e) {
             return [
-                'aspek' => $e->aspek,
+                'kegiatan' => $e->aspek, // disesuaikan dengan key 'kegiatan' di blade
                 'nilai' => $e->nilai ?? 'A',
-                'keterangan' => $e->keterangan
+                'keterangan' => $e->keterangan ?? 'Aktif dan berpartisipasi dengan baik.'
             ];
         })->values();
 
-        // Data Absensi
-        $absensiRecord = Absensi::where('siswa_id', $siswa->id)->first();
+        /**
+         * 4. LOGIKA ABSENSI (UPDATE): Menghitung jumlah berdasarkan status di DB
+         */
+        $allAbsensi = Absensi::where('siswa_id', $siswa->id)
+            ->where('semester', $semesterAktif)
+            ->get();
+
         $absensi = [
-            'sakit' => $absensiRecord->sakit ?? 0,
-            'izin'  => $absensiRecord->izin ?? 0,
-            'alfa'  => $absensiRecord->alfa ?? 0,
+            'sakit' => $allAbsensi->where('status', 'Sakit')->count(),
+            'izin'  => $allAbsensi->where('status', 'Izin')->count(),
+            'alpa'  => $allAbsensi->where('status', 'Alpa')->count(),
         ];
 
-        // Kelengkapan Berkas
-        $semester = ($setting->semester == '1') ? 'Ganjil' : 'Genap';
+        // Variabel pendukung tampilan PDF
+        $semester_nama = $semesterAktif;
         $tgl_cetak = now()->translatedFormat('d F Y');
         $nama_kepsek = $setting->nama_kepsek ?? 'Nama Kepala Sekolah';
         $nip_kepsek  = $setting->nip_kepsek  ?? 'NIP Kepala Sekolah';
         $nama_wali   = $user->name;
-        $nip         = $user->nip ?? '...........................'; 
+        $nip         = $user->nip ?? '...........................'; // key 'nip' disesuaikan dengan blade
         
-        $catatan_wali = $dataSikap->first()['keterangan'] ?? 'Tingkatkan terus prestasi dan semangat belajarnya.';
+        // Catatan wali kelas
+        $catatan_wali = $dataSikap->first()['keterangan'] ?? 'Terus pertahankan semangat belajar dan prestasi yang telah diraih.';
 
+        // Inisialisasi PDF
         $pdf = Pdf::loadView('guru.raport_pdf', compact(
-            'siswa', 'setting', 'user', 'dataRaport', 'dataSikap', 'dataEskul',
+            'siswa', 'setting', 'user', 'dataRaport', 'dataSikap', 'eskul',
             'absensi', 'nama_kepsek', 'nip_kepsek', 'nama_wali', 'nip',
-            'semester', 'tgl_cetak', 'catatan_wali'
+            'semester_nama', 'tgl_cetak', 'catatan_wali'
         ));
 
         return $pdf->setPaper('a4', 'portrait')
-                   ->stream('Raport_'.$siswa->nama.'.pdf');
+                   ->stream('Raport_'.$siswa->nama.'_Smt'.$semester_nama.'.pdf');
     }
 }

@@ -21,9 +21,8 @@
         </div>
     </div>
 
-    {{-- TABEL RAMPING --}}
+    {{-- TABEL --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {{-- Header Tabel Tetap Hijau --}}
         <div class="bg-gradient-to-r from-green-700 to-green-600 px-5 py-3 flex justify-between items-center">
             <h3 class="text-white font-black text-[11px] uppercase tracking-wider flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,14 +83,15 @@
 
                         <td class="px-6 py-3 text-right">
                             <div class="flex justify-end gap-2">
-                                {{-- Tombol Absen Emerald --}}
-                                <a href="{{ route('guru.absensi.index', ['jadwal_id' => $item->id]) }}" 
+                                {{-- Tombol Absensi --}}
+                                <a href="{{ route('guru.absensi.form', $item->id) }}" 
                                    class="inline-flex items-center px-3 py-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white rounded-lg font-black text-[9px] uppercase tracking-tighter border border-emerald-100 transition-all shadow-sm active:scale-95">
                                     Absen
                                 </a>
 
-                                {{-- Tombol Siswa Blue --}}
-                                <a href="{{ route('guru.jadwal.siswa', $item->id) }}" 
+                                {{-- PERBAIKAN UTAMA: Tombol Siswa & Nilai --}}
+                                {{-- Menggunakan route rekap.index agar jadwal_id terkirim dengan benar --}}
+                                <a href="{{ route('guru.rekap.index', ['jadwal_id' => $item->id]) }}" 
                                    class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black text-[9px] uppercase tracking-tighter shadow-sm transition-all active:scale-95">
                                     Siswa & Nilai
                                 </a>
@@ -109,7 +109,7 @@
             </table>
         </div>
 
-        {{-- Footer Ramping --}}
+        {{-- FOOTER --}}
         <div class="bg-gray-50/50 px-6 py-2 border-t border-gray-100 flex items-center justify-between">
             <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1">
                 <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>

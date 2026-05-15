@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Keterangan;
 
 class Nilai extends Model
 {
@@ -12,17 +11,33 @@ class Nilai extends Model
 
     protected $table = 'nilais'; 
 
+    protected $primaryKey = 'id';
+
+    public $incrementing = true;
+
     protected $fillable = [
         'siswa_id',
         'jadwal_id',
-        'mapel_id',
+        // 'mapel_id',
+        'guru_id',
         'jenis',
-        'aspek',     
+        'aspek',
         'nilai',
         'predikat',  
         'keterangan',
+        'capaian_kompetensi',
         'semester',
         'tahun_ajaran'
+    ];
+
+    /**
+     * Casting tipe data kolom agar sinkron dengan perhitungan PHP
+     */
+    protected $casts = [
+        'nilai' => 'integer',
+        'siswa_id' => 'integer',
+        'jadwal_id' => 'integer',
+        'mapel_id' => 'integer',
     ];
 
     // Relasi ke Siswa
@@ -37,15 +52,14 @@ class Nilai extends Model
         return $this->belongsTo(Jadwal::class, 'jadwal_id');
     }
     
-    // Relasi Langsung ke Mapel (Jika kamu menyimpan mapel_id di tabel nilais)
+    // Relasi ke Mapel
     public function mapel() 
     {
         return $this->belongsTo(Mapel::class, 'mapel_id');
     }
 
-    public function keterangan()
+    public function keterangan_relasi()
     {
-        // Asumsi: tabel 'keterangan' punya kolom 'nilai_id' sebagai foreign key
         return $this->hasOne(Keterangan::class, 'nilai_id');
     }
 }

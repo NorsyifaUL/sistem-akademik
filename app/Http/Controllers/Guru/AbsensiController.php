@@ -7,6 +7,7 @@ use App\Models\Absensi;
 use App\Models\Siswa;
 use App\Models\Jadwal;
 use App\Models\Guru;
+use App\Models\Kelas; // Tambahan penting agar tidak error
 use App\Models\Notifikasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -39,38 +40,36 @@ class AbsensiController extends Controller
     /**
      * 2. Riwayat Absensi
      */
-public function index(): View
-{
-    $user = Auth::user();
-    
-    // 1. Logika Jika Login Sebagai GURU (Melihat Riwayat Absensi Miliknya)
-    if ($user->role == 'guru') {
-        $guru = Guru::where('user_id', $user->id)->first();
+    public function index(): View
+    {
+        $user = Auth::user();
         
-        $absensis = Absensi::with(['siswa', 'jadwal.mapel'])
-            ->whereHas('jadwal', function($q) use ($guru) {
-                $q->where('guru_id', $guru->id ?? 0);
-            })
+        // 1. Logika Jika Login Sebagai GURU (Melihat Riwayat Absensi Miliknya)
+        if ($user->role == 'guru') {
+            $guru = Guru::where('user_id', $user->id)->first();
+            
+            $absensis = Absensi::with(['siswa', 'jadwal.mapel'])
+                ->whereHas('jadwal', function($q) use ($guru) {
+                    $q->where('guru_id', $guru->id ?? 0);
+                })
+                ->latest('tanggal')
+                ->paginate(15);
+
+            return view('guru.absensi.riwayat', compact('absensis'));
+        } 
+
+        // 2. Logika Jika Login Sebagai ADMIN (Melihat Semua Data)
+        $absensis = Absensi::with(['siswa', 'jadwal.guru', 'jadwal.mapel'])
             ->latest('tanggal')
             ->paginate(15);
 
-        return view('guru.absensi.riwayat', compact('absensis'));
-    } 
-
-    // 2. Logika Jika Login Sebagai ADMIN (Melihat Semua Data)
-    $absensis = Absensi::with(['siswa', 'jadwal.guru', 'jadwal.mapel'])
-        ->latest('tanggal')
-        ->paginate(15);
-
-    return view('admin.absensi.index', compact('absensis'));
-}
-
-
+        return view('admin.absensi.index', compact('absensis'));
+    }
 
     /**
-     * 3. Form Input Presensi Massal (PERBAIKAN VARIABEL & ACTION)
+     * 3. Form Input Presensi Massal (PERBAIKAN QUERY KELAS)
      */
-public function formAbsensi(int $jadwal_id): View
+    public function formAbsensi(int $jadwal_id): View
     {
         $jadwal = Jadwal::with(['guru', 'mapel'])->findOrFail($jadwal_id);
         $user = Auth::user();
@@ -80,8 +79,13 @@ public function formAbsensi(int $jadwal_id): View
             abort_if(!$guru || $jadwal->guru_id !== $guru->id, 403, 'Akses ditolak.');
         }
 
-        // Menggunakan nama $siswa agar cocok dengan @forelse($siswa)
-        $siswa = Siswa::where('kelas', $jadwal->kelas)->orderBy('nama', 'asc')->get();
+        // --- PERBAIKAN: Cari ID Kelas berdasarkan string nama_kelas di Jadwal ---
+        $kelasObj = Kelas::where('nama_kelas', $jadwal->kelas)->first();
+        
+        // Ambil siswa menggunakan kelas_id (menghindari error Unknown Column 'kelas')
+        $siswa = Siswa::where('kelas_id', $kelasObj->id ?? 0)
+            ->orderBy('nama', 'asc')
+            ->get();
         
         // Menggunakan nama $sudah_absen agar cocok dengan logika radio button di Blade
         $sudah_absen = Absensi::where('jadwal_id', $jadwal_id)
@@ -96,58 +100,55 @@ public function formAbsensi(int $jadwal_id): View
     /**
      * 4. Simpan Absensi & Auto-WA
      */
-public function simpanAbsensi(Request $request): RedirectResponse
-{
-    $request->validate([
-        'jadwal_id' => 'required|exists:jadwals,id',
-        'tanggal'   => 'required|date',
-        'status'    => 'required|array', 
-    ]);
-
-    // 1. CEK APAKAH SUDAH ADA ABSENSI UNTUK JADWAL & TANGGAL INI
-    // Ini untuk mencegah input ganda jika guru mencoba menekan tombol simpan lagi
-    $sudahAbsen = Absensi::where('jadwal_id', $request->jadwal_id)
-                        ->whereDate('tanggal', $request->tanggal)
-                        ->exists();
-
-    if ($sudahAbsen) {
-        return redirect()->back()->with('error', 'Presensi hari ini sudah diisi. Silakan gunakan tombol Edit untuk mengubah data.');
-    }
-
-    $jadwal = Jadwal::with('mapel')->findOrFail($request->jadwal_id);
-
-    foreach ($request->status as $siswa_id => $statusRaw) {
-        $statusMap = [
-            'H' => 'Hadir', 
-            'I' => 'Izin', 
-            'S' => 'Sakit', 
-            'A' => 'Alfa'
-        ];
-        
-        $inisial = strtoupper(substr($statusRaw, 0, 1));
-        $status  = $statusMap[$inisial] ?? $statusRaw;
-
-        $keteranganDefault = ($status == 'Alfa') 
-            ? "Siswa tidak hadir pada mata pelajaran " . ($jadwal->mapel->nama_mapel ?? 'Mata Pelajaran') 
-            : null;
-
-        // Menggunakan create karena pengecekan ganda sudah dilakukan di atas.
-        // Jika kamu tetap ingin sangat aman, bisa tetap pakai updateOrCreate.
-        $absensi = Absensi::create([
-            'siswa_id'   => $siswa_id, 
-            'jadwal_id'  => $request->jadwal_id, 
-            'tanggal'    => $request->tanggal,
-            'status'     => $status, 
-            'keterangan' => $request->keterangan[$siswa_id] ?? $keteranganDefault
+    public function simpanAbsensi(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'jadwal_id' => 'required|exists:jadwals,id',
+            'tanggal'   => 'required|date',
+            'status'    => 'required|array', 
         ]);
 
-        if ($status == 'Alfa') {
-            $this->kirimNotifikasiKeOrangTua($absensi);
-        }
-    }
+        // Cek duplikasi input hari ini
+        $sudahAbsen = Absensi::where('jadwal_id', $request->jadwal_id)
+                            ->whereDate('tanggal', $request->tanggal)
+                            ->exists();
 
-    return redirect()->back()->with('success', 'Presensi berhasil disimpan.');
-}
+        if ($sudahAbsen) {
+            return redirect()->back()->with('error', 'Presensi hari ini sudah diisi. Silakan gunakan tombol Edit untuk mengubah data.');
+        }
+
+        $jadwal = Jadwal::with('mapel')->findOrFail($request->jadwal_id);
+
+        foreach ($request->status as $siswa_id => $statusRaw) {
+            $statusMap = [
+                'H' => 'Hadir', 
+                'I' => 'Izin', 
+                'S' => 'Sakit', 
+                'A' => 'Alfa'
+            ];
+            
+            $inisial = strtoupper(substr($statusRaw, 0, 1));
+            $status  = $statusMap[$inisial] ?? $statusRaw;
+
+            $keteranganDefault = ($status == 'Alfa') 
+                ? "Siswa tidak hadir pada mata pelajaran " . ($jadwal->mapel->nama_mapel ?? 'Mata Pelajaran') 
+                : null;
+
+            $absensi = Absensi::create([
+                'siswa_id'   => $siswa_id, 
+                'jadwal_id'  => $request->jadwal_id, 
+                'tanggal'    => $request->tanggal,
+                'status'     => $status, 
+                'keterangan' => $request->keterangan[$siswa_id] ?? $keteranganDefault
+            ]);
+
+            if ($status == 'Alfa') {
+                $this->kirimNotifikasiKeOrangTua($absensi);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Presensi berhasil disimpan.');
+    }
 
     /**
      * 5. Edit Absensi
@@ -186,13 +187,13 @@ public function simpanAbsensi(Request $request): RedirectResponse
     }
 
     /**
-     * 8. Rekapitulasi
+     * 8. Rekapitulasi (PERBAIKAN QUERY FILTER SISWA)
      */
     public function rekap(Request $request): View
     {
         $user = Auth::user();
         $mode = $request->mode ?? 'daily';
-        $kelas = $request->kelas;
+        $kelas_filter = $request->kelas; // Menggunakan variabel filter agar tidak tabrakan
 
         if ($user->role == 'guru') {
             $guru = Guru::where('user_id', $user->id)->first();
@@ -200,7 +201,8 @@ public function simpanAbsensi(Request $request): RedirectResponse
                 ->select('kelas')->distinct()->get();
             $view = 'guru.absensi.rekap';
         } else {
-            $kelasList = Siswa::select('kelas')->distinct()->get();
+            // Mengambil list unik dari kolom nama_kelas di tabel Kelas
+            $kelasList = Kelas::select('nama_kelas as kelas')->distinct()->get();
             $view = 'admin.absensi.rekap';
         }
 
@@ -214,9 +216,9 @@ public function simpanAbsensi(Request $request): RedirectResponse
             $query->whereDate('tanggal', $tanggal);
         }
 
-        if ($kelas) {
-            $query->whereHas('siswa', function($q) use ($kelas) {
-                $q->where('kelas', $kelas);
+        if ($kelas_filter) {
+            $query->whereHas('siswa.kelas', function($q) use ($kelas_filter) {
+                $q->where('nama_kelas', $kelas_filter);
             });
         }
 
@@ -229,7 +231,7 @@ public function simpanAbsensi(Request $request): RedirectResponse
 
         $rekaps = $query->latest()->get();
 
-        return view($view, compact('rekaps', 'kelasList', 'kelas', 'mode'));
+        return view($view, compact('rekaps', 'kelasList', 'mode'))->with('kelas', $kelas_filter);
     }
 
     /**

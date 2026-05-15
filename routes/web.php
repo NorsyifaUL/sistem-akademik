@@ -129,10 +129,13 @@ Route::delete('/absensi/{id}', [App\Http\Controllers\Admin\AbsensiController::cl
         Route::get('/lihat-nilai', [GuruController::class, 'lihatNilaiSiswa'])->name('lihat_nilai'); 
         Route::get('/nilai/input-form/{jadwalId}/{siswaId}', [GuruController::class, 'inputNilaiForm'])->name('nilai.input');
         
+        Route::post('/nilai/store-kolektif', [GuruController::class, 'storeKolektif'])->name('nilai.store_kolektif');
+
         Route::post('/nilai/simpan/{jadwalId}/{siswaId}', [GuruController::class, 'simpanNilai'])->name('nilai.store');
         Route::delete('/nilai/destroy/{id}', [GuruController::class, 'destroyNilai'])->name('nilai.destroy');
         Route::post('/nilai/simpan-massal', [GuruController::class, 'simpanNilaiMassal'])->name('nilai.simpan_massal');
         Route::get('/rekap/{jadwal_id}', [GuruController::class, 'rekapNilai'])->name('rekap.index');
+        Route::get('/nilai/cetak-pdf/{jadwal_id}', [GuruController::class, 'cetakPdf'])->name('nilai.cetak_pdf');
 
         // --- 3. ABSENSI SISWA ---
         Route::prefix('absensi')->name('absensi.')->group(function() {

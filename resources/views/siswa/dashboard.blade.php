@@ -10,8 +10,11 @@
             <div class="relative z-10">
                 <h2 class="text-2xl font-black italic tracking-tight">Halo, {{ auth()->user()->name }}!</h2>
                 <p class="text-green-100/80 mt-1 font-medium text-xs">Selamat Datang di SIAKAD SMAN 1 Jejangkit</p>
+                
+                {{-- PERBAIKAN: Mengakses properti nama_kelas agar tidak tampil JSON --}}
                 <div class="mt-4 inline-flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10 text-[10px] font-bold uppercase tracking-widest">
-                    <i class="fa-solid fa-graduation-cap text-[#ffb800]"></i> KELAS: {{ $siswa->kelas ?? '-' }}
+                    <i class="fa-solid fa-graduation-cap text-[#ffb800]"></i> 
+                    KELAS: {{ $siswa->kelas->nama_kelas ?? '-' }}
                 </div>
             </div>
             <div class="absolute -right-10 -top-10 w-32 h-32 bg-[#ffb800] rounded-full opacity-20"></div>
@@ -36,12 +39,19 @@
                     </div>
                     <div class="ml-4 flex-1 min-w-0 font-black">
                         <h4 class="text-gray-800 text-[11px] uppercase truncate">{{ $j->mapel?->nama_mapel }}</h4>
-                        <p class="text-[8px] text-gray-400 uppercase truncate mt-0.5"><i class="fa-solid fa-user-tie text-[#ffb800] mr-1"></i>{{ $j->guru?->nama }}</p>
+                        <p class="text-[8px] text-gray-400 uppercase truncate mt-0.5">
+                            <i class="fa-solid fa-user-tie text-[#ffb800] mr-1"></i>{{ $j->guru?->nama }}
+                        </p>
                     </div>
-                    <span class="hidden md:block text-[7px] font-black bg-white text-[#064e3b] px-2 py-1 rounded-md border border-gray-100 uppercase italic">R. {{ $siswa->kelas }}</span>
+                    {{-- PERBAIKAN: Menggunakan nama_kelas untuk label ruangan --}}
+                    <span class="hidden md:block text-[7px] font-black bg-white text-[#064e3b] px-2 py-1 rounded-md border border-gray-100 uppercase italic">
+                        R. {{ $siswa->kelas->nama_kelas ?? '-' }}
+                    </span>
                 </div>
                 @empty
-                <div class="text-center py-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100 text-gray-400 font-bold text-[9px] uppercase tracking-widest">Tidak ada jadwal</div>
+                <div class="text-center py-8 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100 text-gray-400 font-bold text-[9px] uppercase tracking-widest">
+                    Tidak ada jadwal
+                </div>
                 @endforelse
             </div>
         </div>
@@ -49,13 +59,12 @@
 
     {{-- KOLOM KANAN --}}
     <div class="space-y-5">
-        {{-- Statistik Presensi - UPDATE DISINI --}}
+        {{-- Statistik Presensi --}}
         <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-6 text-center">
             <h3 class="text-[9px] font-black text-gray-400 mb-4 uppercase tracking-[0.2em] flex justify-center items-center gap-2">
                 <i class="fa-solid fa-chart-line text-[#064e3b]"></i> Statistik
             </h3>
             <div class="grid grid-cols-1 gap-2.5">
-                {{-- Gunakan variabel total dari controller agar angka akurat --}}
                 @foreach([
                     ['Hadir', $totalHadir, 'emerald', 'fa-check'],
                     ['Izin/Sakit', $totalIzinSakit, 'amber', 'fa-envelope'],

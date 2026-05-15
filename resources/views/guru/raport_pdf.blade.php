@@ -14,7 +14,8 @@
             font-size: 11px; 
             color: #000; 
             line-height: 1.4; 
-            margin-top: 95px; 
+            /* Dikurangi sedikit agar konten utama lebih naik */
+            margin-top: 85px; 
             margin-bottom: 50px; 
         }
         
@@ -51,7 +52,15 @@
         .info-label-right { width: 18%; }
         .info-value-right { width: 22%; font-weight: bold; }
 
-        .title { text-align: center; font-size: 13px; font-weight: bold; margin-top: 0; margin-bottom: 12px; text-transform: uppercase; }
+        /* PERBAIKAN: Jarak Judul didekatkan ke atas */
+        .title { 
+            text-align: center; 
+            font-size: 13px; 
+            font-weight: bold; 
+            margin-top: -5px; /* Margin negatif untuk menarik teks ke atas */
+            margin-bottom: 10px; 
+            text-transform: uppercase; 
+        }
         
         .main-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; table-layout: fixed; }
         .main-table th, .main-table td { border: 1px solid #000; padding: 6px; vertical-align: top; }
@@ -64,9 +73,7 @@
         .center { text-align: center; }
         .bold { font-weight: bold; }
         .uppercase { text-transform: uppercase; }
-        .italic { font-style: italic; }
         
-        /* Gaya khusus untuk Narasi Capaian agar rapi dan mengambil data dari DB */
         .narasi { 
             text-align: justify; 
             font-size: 10px; 
@@ -88,11 +95,11 @@
         <table class="header-table">
             <tr>
                 <td class="info-label">Nama Peserta Didik</td><td class="info-separator">:</td><td class="info-value uppercase">{{ $siswa->nama }}</td>
-                <td class="info-label-right">Kelas</td><td class="info-separator">:</td><td class="info-value-right">{{ $siswa->kelas }}</td>
+                <td class="info-label-right">Kelas</td><td class="info-separator">:</td><td class="info-value-right">{{ $siswa->kelas->nama_kelas ?? '-' }}</td>
             </tr>
             <tr>
                 <td class="info-label">NISN</td><td class="info-separator">:</td><td class="info-value">{{ $siswa->nisn }}</td>
-                <td class="info-label-right">Fase</td><td class="info-separator">:</td><td class="info-value-right">E</td>
+                <td class="info-label-right">Fase</td><td class="info-separator">:</td><td class="info-value-right">{{ $siswa->kelas->fase ?? 'E' }}</td>
             </tr>
             <tr>
                 <td class="info-label">Sekolah</td><td class="info-separator">:</td><td class="info-value uppercase">SMAN 1 Jejangkit</td>
@@ -111,7 +118,7 @@
         <table class="footer-table">
             <tr>
                 <td style="width: 70%; text-align: left; font-size: 9px;">
-                    {{ $siswa->kelas }} | {{ $siswa->nama }} | {{ $siswa->nisn }}
+                    {{ $siswa->kelas->nama_kelas ?? '-' }} | {{ $siswa->nama }} | {{ $siswa->nisn }}
                 </td>
                 <td style="width: 30%; text-align: right; font-size: 9px;">
                     Halaman : <span class="page-number"></span>
@@ -127,66 +134,67 @@
             <thead>
                 <tr>
                     <th width="5%">NO</th>
-                    <th width="25%">MATA PELAJARAN</th>
-                    <th width="12%">NILAI AKHIR</th>
-                    <th width="58%">CAPAIAN KOMPETENSI</th>
+                    <th width="30%">MATA PELAJARAN</th>
+                    <th width="10%">NILAI AKHIR</th>
+                    <th width="55%">CAPAIAN KOMPETENSI</th>
                 </tr>
             </thead>
             <tbody>
-                <tr><td colspan="4" class="category-row">Kelompok Umum</td></tr>
-                @forelse($dataRaport as $index => $row)
+                @php $no = 1; @endphp
+                @forelse($dataRaport as $row)
                 <tr>
-                    <td class="center">{{ $index + 1 }}</td>
-                    <td>{{ $row['mapel'] }}</td>
-                    <td class="center bold">{{ $row['akhir'] }}</td>
+                    <td class="center">{{ $no++ }}</td>
+                    <td class="uppercase">{{ $row['mapel'] }}</td>
+                    <td class="center bold">
+                        {{ ($row['akhir'] > 0) ? $row['akhir'] : '-' }}
+                    </td>
                     <td class="narasi">
-                        {{-- MENGHUBUNGKAN LANGSUNG KE TABEL NILAI (KOLOM KETERANGAN) --}}
-                        @if(!empty($row['capaian_kompetensi']))
+                        @if($row['akhir'] > 0)
                             {!! nl2br(e($row['capaian_kompetensi'])) !!}
                         @else
-                            <span class="italic" style="color: #666;">Belum ada capaian kompetensi yang diisi oleh guru.</span>
+                            <span class="italic" style="color: #666;">Data nilai dan deskripsi capaian kompetensi belum tersedia.</span>
                         @endif
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="4" class="center italic">Data nilai tidak ditemukan.</td></tr>
+                <tr>
+                    <td colspan="4" class="center italic">Tidak ada data mata pelajaran untuk kelas ini.</td>
+                </tr>
                 @endforelse
             </tbody>
         </table>
 
-        {{-- Tabel Ekstrakurikuler --}}
         <table class="main-table">
             <thead>
                 <tr>
                     <th width="5%">NO</th>
-                    <th width="30%">KEGIATAN EKSTRAKURIKULER</th>
+                    <th width="35%">KEGIATAN EKSTRAKURIKULER</th>
                     <th width="15%">PREDIKAT</th>
-                    <th width="50%">KETERANGAN</th>
+                    <th width="45%">KETERANGAN</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($eskul as $index => $ex)
+                @forelse($eskul as $ex)
                 <tr>
-                    <td class="center">{{ $index + 1 }}</td>
-                    <td class="uppercase bold">{{ $ex['kegiatan'] }}</td>
+                    <td class="center">{{ $loop->iteration }}</td>
+                    <td class="uppercase">{{ $ex['kegiatan'] }}</td>
                     <td class="center bold">{{ $ex['nilai'] }}</td>
                     <td class="narasi">{{ $ex['keterangan'] }}</td>
                 </tr>
                 @empty
-                <tr><td colspan="4" class="center italic">- Tidak ada data ekstrakurikuler -</td></tr>
+                <tr><td colspan="4" class="center italic">- Tidak mengikuti ekstrakurikuler -</td></tr>
                 @endforelse
             </tbody>
         </table>
 
-        {{-- Tabel Absensi --}}
-        <table class="main-table" style="width: 40%; margin-bottom: 20px;">
+        <table class="main-table" style="width: 45%; margin-bottom: 20px;">
             <thead>
                 <tr>
                     <th colspan="2">KETIDAKHADIRAN</th>
                 </tr>
             </thead>
             <tbody>
-                <tr><td width="60%">Sakit</td><td class="center bold">{{ $absensi['sakit'] ?? 0 }} hari</td></tr>
+                <tr><td width="70%">Sakit</td><td class="center bold">{{ $absensi['sakit'] ?? 0 }} hari</td></tr>
                 <tr><td>Izin</td><td class="center bold">{{ $absensi['izin'] ?? 0 }} hari</td></tr>
                 <tr><td>Tanpa Keterangan</td><td class="center bold">{{ $absensi['alpa'] ?? 0 }} hari</td></tr>
             </tbody>
@@ -194,7 +202,7 @@
 
         <div style="font-weight: bold; font-size: 11px; margin-bottom: 5px;">CATATAN WALI KELAS</div>
         <div class="catatan-box">
-            {{ $catatan_wali }}
+            {{ $catatan_wali ?? 'Tingkatkan terus semangat belajarmu.' }}
         </div>
 
         <table style="width: 100%; border: none; margin-top: 10px;">
@@ -208,12 +216,12 @@
 
         <table class="footer-ttd">
             <tr>
-                <td width="33%">Mengetahui,<br>Orang Tua/Wali<div class="ttd-space"><br></div>( .................................... )</td>
-                <td width="34%">Mengetahui,<br>Kepala Sekolah<div class="ttd-space"><br></div><strong><u>{{ $setting->nama_kepsek }}</u></strong><br>NIP. {{ $setting->nip_kepsek }}</td>
+                <td width="33%">Mengetahui,<br>Orang Tua/Wali<div class="ttd-space"></div><br>( .................................... )</td>
+                <td width="34%">Mengetahui,<br>Kepala Sekolah<div class="ttd-space"></div><br><strong><u>{{ $setting->nama_kepsek }}</u></strong><br>NIP. {{ $setting->nip_kepsek }}</td>
                 <td width="33%">
                     <br>
-                    Wali Kelas<div class="ttd-space"><br></div>
-                    <strong><u>{{ $nama_wali }}</u></strong><br>NIP. {{ $nip }}
+                    Wali Kelas<div class="ttd-space"></div>
+                    <br><strong><u>{{ $nama_wali }}</u></strong><br>NIP. {{ $nip }}
                 </td>
             </tr>
         </table>

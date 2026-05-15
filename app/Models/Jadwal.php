@@ -13,8 +13,8 @@ class Jadwal extends Model
     protected $fillable = [
         'guru_id',
         'mapel_id',
-        'kelas_id', // Pastikan menggunakan foreign key jika berelasi ke tabel Kelas
-        'kelas',    // Jika kolom ini adalah string teks (misal: "X-IPA")
+        'kelas_id', 
+        'kelas',    
         'hari',
         'jam_mulai',
         'jam_selesai',
@@ -22,7 +22,7 @@ class Jadwal extends Model
     ];
 
     // =========================================================================
-    // ACCESSOR (Menghilangkan Detik secara Otomatis)
+    // ACCESSOR (Penanganan Otomatis)
     // =========================================================================
     
     /**
@@ -45,44 +45,53 @@ class Jadwal extends Model
         );
     }
 
+    /**
+     * Accessor Virtual untuk Nama Kelas
+     * Gunakan ini di Blade: $j->nama_display_kelas
+     * Ini akan mengecek relasi dulu, jika kosong baru ambil dari kolom string 'kelas'
+     */
+    protected function namaDisplayKelas(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if ($this->kelasRelation) {
+                    return $this->kelasRelation->nama_kelas;
+                }
+                return $this->attributes['kelas'] ?? '-';
+            },
+        );
+    }
+
     // =========================================================================
     // RELASI DATABASE
     // =========================================================================
 
-    // Relasi ke Guru
     public function guru()
     {
         return $this->belongsTo(Guru::class, 'guru_id');
     }
 
-    // Relasi ke Mata Pelajaran
     public function mapel()
     {
         return $this->belongsTo(Mapel::class, 'mapel_id');
     }
 
-    // Relasi ke Data Kelas (Tabel Kelas)
-    // Gunakan ini jika kamu punya tabel 'kelas' terpisah
-    public function dataKelas()
+    /**
+     * Saya ubah nama fungsinya menjadi kelasRelation agar tidak bentrok 
+     * dengan atribut 'kelas' di tabel Anda.
+     */
+    public function kelasRelation()
     {
         return $this->belongsTo(Kelas::class, 'kelas_id');
     }
 
-    // Relasi ke Absensi
     public function absensis()
     {
         return $this->hasMany(Absensi::class, 'jadwal_id');
     }
 
-    // Relasi ke Nilai
     public function nilais()
     {
         return $this->hasMany(Nilai::class, 'jadwal_id');
-    }
-
-    public function kelasRelasi()
-    {
-        // Mengubungkan foreign key kelas_id di tabel jadwal ke id di tabel kelas
-        return $this->belongsTo(Kelas::class, 'kelas_id');
     }
 }

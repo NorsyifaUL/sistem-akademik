@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="p-4 space-y-4 animate-fade-in">
-    {{-- Header Section - Lebih Ramping --}}
+    {{-- Header Section --}}
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div class="flex items-center gap-3">
             <div class="p-2 bg-blue-600 rounded-lg text-white shadow-md shadow-blue-100">
@@ -22,17 +22,21 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative">
         <div class="absolute top-0 left-0 right-0 h-1 bg-blue-600"></div>
 
-        {{-- Filter Area - Lebih Padat --}}
+        {{-- Filter Area --}}
         <div class="p-5 border-b border-gray-50 bg-gray-50/30 pt-6">
             <form action="{{ route('admin.nilai.index') }}" method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                 
                 {{-- Filter Kelas --}}
                 <div class="space-y-1.5">
                     <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Pilih Kelas</label>
-                    <select name="kelas" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:border-blue-600 focus:ring-0 text-[11px] font-bold transition-all outline-none cursor-pointer">
-                        <option value="" disabled {{ !$kelasTerpilih ? 'selected' : '' }}>-- Kelas --</option>
+                    {{-- FIX: Name diganti menjadi kelas_id --}}
+                    <select name="kelas_id" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:border-blue-600 focus:ring-0 text-[11px] font-bold transition-all outline-none cursor-pointer">
+                        <option value="" disabled {{ !$kelasTerpilih ? 'selected' : '' }}>-- Pilih Kelas --</option>
                         @foreach($data_kelas as $k)
-                            <option value="{{ $k }}" {{ $kelasTerpilih == $k ? 'selected' : '' }}>Kelas {{ $k }}</option>
+                            {{-- FIX: value menggunakan $k->id, label menggunakan $k->nama_kelas --}}
+                            <option value="{{ $k->id }}" {{ $kelasTerpilih == $k->id ? 'selected' : '' }}>
+                                {{ $k->nama_kelas }}
+                            </option>
                         @endforeach
                     </select>
                 </div>

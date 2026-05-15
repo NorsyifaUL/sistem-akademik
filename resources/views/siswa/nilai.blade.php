@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6 animate-fade-in pb-8">
-    {{-- Header Dokumen Akademik - Lebih ramping --}}
+    {{-- Header Dokumen Akademik --}}
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b-4 border-[#064e3b] pb-5">
         <div>
             <div class="flex items-center gap-3 mb-2">
@@ -14,7 +14,7 @@
             <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-0.5">
                 <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Nama : <span class="text-gray-900 ml-1">{{ auth()->user()->name }}</span></p>
                 <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">NISN : <span class="text-gray-900 ml-1">{{ $siswa->nisn ?? '-' }}</span></p>
-                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Kelas : <span class="text-gray-900 ml-1 font-bold">{{ $siswa->kelas ?? '-' }}</span></p>
+                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Kelas : <span class="text-gray-900 ml-1 font-bold">{{ $siswa->kelas->nama_kelas ?? '-' }}</span></p>
                 <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Status : <span class="text-[#064e3b] ml-1 italic">Siswa Aktif</span></p>
             </div>
         </div>
@@ -26,7 +26,7 @@
         </div>
     </div>
 
-    {{-- Form Filter - Dibuat Lebih Ringkas --}}
+    {{-- Form Filter --}}
     <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         <form action="{{ route('siswa.nilai') }}" method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
@@ -52,7 +52,7 @@
         </form>
     </div>
 
-    {{-- Tabel Utama --}}
+    {{-- Tabel Utama - Versi Bersih (Nilai Saja) --}}
     <div class="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
@@ -64,8 +64,6 @@
                         <th class="px-4 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">UTS</th>
                         <th class="px-4 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">UAS</th>
                         <th class="px-5 py-4 text-[9px] font-black text-[#064e3b] uppercase tracking-widest text-center bg-[#064e3b]/5">Akhir</th>
-                        <th class="px-4 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Predikat</th>
-                        <th class="px-5 py-4 text-[9px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -83,24 +81,10 @@
                                 {{ $item['akhir'] }}
                             </span>
                         </td>
-                        <td class="px-4 py-4 text-center">
-                            <span class="font-black text-base {{ $item['akhir'] >= 75 ? 'text-slate-800' : 'text-rose-600' }}">
-                                {{ $item['predikat'] }}
-                            </span>
-                        </td>
-                        <td class="px-5 py-4 text-right">
-                            @if($item['akhir'] >= 75)
-                                <span class="text-[8px] font-black text-emerald-600 uppercase bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-md shadow-sm">Tuntas</span>
-                            @elseif($item['akhir'] > 0)
-                                <span class="text-[8px] font-black text-rose-600 uppercase bg-rose-50 border border-rose-100 px-2 py-1 rounded-md shadow-sm">Remedial</span>
-                            @else
-                                <span class="text-[8px] font-black text-gray-400 uppercase bg-gray-50 border border-gray-100 px-2 py-1 rounded-md">-</span>
-                            @endif
-                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-5 py-16 text-center">
+                        <td colspan="6" class="px-5 py-16 text-center">
                             <div class="flex flex-col items-center">
                                 <i class="fa-solid fa-folder-open text-gray-100 text-4xl mb-3"></i>
                                 <p class="text-gray-400 font-black uppercase text-[9px] tracking-widest">Data nilai tidak ditemukan.</p>
@@ -122,13 +106,7 @@
                         <td colspan="3"></td>
                         <td class="px-5 py-5 text-center bg-[#064e3b]/10">
                             <span class="text-xs font-black text-[#064e3b]">
-                                {{ number_format(collect($rekapNilai)->avg('akhir'), 1) }}
-                            </span>
-                        </td>
-                        <td colspan="2" class="px-5 py-5 text-right italic text-[8px] text-gray-400 font-bold uppercase tracking-tight">
-                            Status: 
-                            <span class="{{ collect($rekapNilai)->every('akhir', '>=', 75) ? 'text-emerald-600' : 'text-rose-600' }}">
-                                {{ collect($rekapNilai)->every('akhir', '>=', 75) ? 'Lulus Seluruh Mapel' : 'Ada Remedial' }}
+                                {{ round(collect($rekapNilai)->avg('akhir')) }}
                             </span>
                         </td>
                     </tr>
@@ -138,7 +116,7 @@
         </div>
     </div>
 
-    {{-- Footer Dokumen - Lebih tipis --}}
+    {{-- Footer Dokumen --}}
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-4 border-t border-gray-100">
         <div class="flex items-center gap-2">
             <div class="w-8 h-8 bg-[#064e3b] rounded-lg flex items-center justify-center shadow-md">

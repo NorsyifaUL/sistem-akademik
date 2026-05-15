@@ -19,12 +19,11 @@
         </div>
     </div>
 
-    {{-- MAIN CARD (W-FULL AGAR SELARAS) --}}
+    {{-- MAIN CARD --}}
     <div class="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        {{-- Accent Line Tipis --}}
         <div class="h-[3px] bg-indigo-600 w-full"></div>
         
-        {{-- Toolbar Filter Ramping --}}
+        {{-- Toolbar Filter --}}
         <div class="px-5 py-3 border-b border-slate-100 bg-slate-50/30 flex flex-col md:flex-row justify-between items-center gap-3">
             <form action="{{ route('admin.notifikasi.index') }}" method="GET" class="flex items-center gap-2 w-full md:w-auto">
                 <div class="relative w-full md:w-48 group">
@@ -57,7 +56,7 @@
             </div>
         </div>
 
-        {{-- Tabel Log Ramping --}}
+        {{-- Tabel Log --}}
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
@@ -65,6 +64,7 @@
                         <th class="px-6 py-3 bg-slate-50/50">Waktu</th>
                         <th class="px-6 py-3 bg-slate-50/50">Siswa & Kelas</th>
                         <th class="px-6 py-3 bg-slate-50/50">Pesan Notifikasi</th>
+                        <th class="px-6 py-3 bg-slate-50/50 text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50">
@@ -92,10 +92,19 @@
                                     "{{ $n->isi_pesan }}"
                                 </div>
                             </td>
+                            <td class="px-6 py-3 text-center">
+                                <form action="{{ route('admin.notifikasi.destroy', $n->id) }}" method="POST" onsubmit="return confirm('Hapus log notifikasi ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="h-8 w-8 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all flex items-center justify-center group/btn shadow-sm">
+                                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="3" class="px-6 py-16 text-center">
+                            <td colspan="4" class="px-6 py-16 text-center">
                                 <div class="flex flex-col items-center gap-2 opacity-20">
                                     <i class="fa-solid fa-folder-open text-3xl"></i>
                                     <span class="text-[10px] font-black uppercase tracking-[0.2em]">Tidak Ada Log</span>
@@ -107,7 +116,7 @@
             </table>
         </div>
 
-        {{-- FOOTER CARD RAMPING --}}
+        {{-- FOOTER CARD --}}
         <div class="px-6 py-3 bg-slate-50/30 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-3">
             <div class="flex items-center gap-3">
                 <div class="h-6 w-[2px] bg-indigo-500 rounded-full"></div>
@@ -122,7 +131,6 @@
         </div>
     </div>
 
-    {{-- Footer Mini --}}
     <p class="text-center text-[8px] font-bold text-slate-300 uppercase tracking-[0.3em] pt-2">SIAKAD SYSTEM &bull; v2.0</p>
 </div>
 @endsection

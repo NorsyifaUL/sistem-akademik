@@ -40,14 +40,15 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {{-- Form Input --}}
         <div class="lg:col-span-4">
-            <div class="bg-white rounded-lg border border-emerald-200 shadow-sm overflow-hidden">
+            <div class="bg-white rounded-lg border border-emerald-200 shadow-sm overflow-hidden sticky top-6">
                 <div class="bg-emerald-800 px-5 py-3 border-b border-emerald-900">
                     <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center">
-                        <i class="fas fa-edit mr-2 text-emerald-400"></i> Panel Input Nilai
+                        <i class="fas fa-plus-circle mr-2 text-emerald-400"></i> Panel Input Nilai
                     </h3>
                 </div>
                 <div class="p-6">
-                    <form action="{{ route('guru.nilai.sikap.store') }}" method="POST" class="space-y-5">
+                    {{-- Action disesuaikan dengan route simpanSikap Anda --}}
+                    <form action="{{ route('guru.nilai.sikap.store', $siswa->id) }}" method="POST" id="formSikap" class="space-y-5">
                         @csrf
                         <input type="hidden" name="siswa_id" value="{{ $siswa->id }}">
                         <input type="hidden" name="jenis" value="sikap">
@@ -64,7 +65,6 @@
                                 </select>
                             </div>
 
-                            {{-- Input Manual (Muncul jika "Lainnya" dipilih) --}}
                             <div id="inputManualWrapper" class="hidden animate-fade-in">
                                 <label class="block text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 italic">Input Aspek Lainnya</label>
                                 <input type="text" id="aspekCustom" name="aspek_custom" 
@@ -79,7 +79,7 @@
                             <div class="flex gap-2">
                                 @foreach(['A', 'B', 'C', 'D'] as $v)
                                 <label class="flex-1 cursor-pointer group">
-                                    <input type="radio" name="nilai" value="{{ $v }}" class="hidden peer" required onchange="generateDescription()">
+                                    <input type="radio" name="nilai" id="radio_{{ $v }}" value="{{ $v }}" class="hidden peer" required onchange="generateDescription()">
                                     <div class="py-2 text-center border border-slate-200 rounded text-xs font-bold text-slate-500 group-hover:bg-emerald-50 peer-checked:bg-emerald-700 peer-checked:text-white peer-checked:border-emerald-700 transition-all">
                                         {{ $v }}
                                     </div>
@@ -94,7 +94,6 @@
                             <textarea id="keterangan" name="keterangan" rows="6" 
                                 class="w-full px-4 py-3 bg-white border border-slate-200 rounded text-xs font-medium text-slate-600 leading-relaxed focus:ring-1 focus:ring-emerald-600 outline-none resize-none transition-all" 
                                 placeholder="Pilih aspek & nilai untuk draft..." required></textarea>
-                            <p class="mt-2 text-[10px] text-emerald-600 italic font-medium text-center">* Deskripsi dapat diedit kembali.</p>
                         </div>
 
                         <button type="submit" class="w-full bg-emerald-800 text-white py-3 rounded font-bold text-xs uppercase tracking-widest hover:bg-emerald-900 transition-all shadow-md active:scale-95">
@@ -120,7 +119,7 @@
                                 <th class="py-4 px-4" width="25%">Aspek Penilaian</th>
                                 <th class="py-4 px-4 text-center" width="10%">Nilai</th>
                                 <th class="py-4 px-4">Deskripsi Observasi</th>
-                                <th class="py-4 px-6 text-center" width="10%">Aksi</th>
+                                <th class="py-4 px-6 text-center" width="15%">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-emerald-50">
@@ -134,19 +133,21 @@
                                 </td>
                                 <td class="py-4 px-4 text-center">
                                     <span class="inline-block px-3 py-1 bg-emerald-800 text-white rounded font-black text-[10px] shadow-sm">
-                                        {{ $n->predikat ?? ($n->nilai ?? '-') }}
+                                        {{ $n->predikat }}
                                     </span>
                                 </td>
                                 <td class="py-4 px-4 text-[11px] text-slate-600 leading-normal font-medium italic">
                                     "{{ $n->keterangan }}"
                                 </td>
-                                <td class="py-4 px-6 text-center">
-                                    <form action="{{ route('guru.nilai.destroy', $n->id) }}" method="POST" onsubmit="return confirm('Hapus penilaian ini?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center mx-auto">
-                                            <i class="fas fa-trash-alt text-[10px]"></i>
-                                        </button>
-                                    </form>
+                                <td class="py-4 px-6">
+                                    <div class="flex items-center justify-center">
+                                        <form action="{{ route('guru.nilai.destroy', $n->id) }}" method="POST" onsubmit="return confirm('Hapus penilaian ini?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="w-8 h-8 rounded-full bg-red-50 text-red-400 hover:bg-red-600 hover:text-white transition-all flex items-center justify-center shadow-sm">
+                                                <i class="fas fa-trash-alt text-[10px]"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             @empty
@@ -193,7 +194,6 @@
 
         if (aspek && predikatRadio) {
             const predikat = predikatRadio.value;
-
             const dataKalimat = {
                 'Keagamaan': {
                     'A': "Sangat taat dalam beribadah, menunjukkan sikap syukur yang luar biasa, dan konsisten menjaga kerukunan antar umat beragama.",
@@ -228,5 +228,6 @@
         to { opacity: 1; transform: translateY(0); }
     }
     .animate-fade-in { animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    .sticky { position: sticky; top: 1.5rem; }
 </style>
 @endsection

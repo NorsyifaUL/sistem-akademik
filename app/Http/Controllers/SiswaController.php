@@ -77,7 +77,10 @@ public function dashboard()
     }
 
     /**
-     * Fitur Nilai (Laporan Hasil Belajar)
+     * Fitur Nilai (Laporan Hasil Belajar) - Versi Full Terupdate
+     */
+/**
+     * Fitur Nilai (Laporan Hasil Belajar) - Versi Tanpa Koma
      */
     public function nilai(Request $request)
     {
@@ -86,64 +89,66 @@ public function dashboard()
         
         if (!$siswa) return redirect()->back()->with('error', 'Data profil siswa belum lengkap.');
 
+        // Ambil data dari tabel settings
         $setup = Setting::first();
 
-        // 1. Ambil Filter
-        $tahun_filter = $request->get('tahun_ajaran', $setup->tahun_ajaran ?? '2024/2025');
-        $semester_filter = $request->get('semester', $setup->semester ?? '1');
+        // 1. Ambil Filter (Gunakan data dari settings sebagai default)
+        $tahun_filter = $request->get('tahun_ajaran', $setup->tahun_ajaran);
+        $semester_filter = $request->get('semester', $setup->semester);
 
-        // 2. Terjemahkan angka ke kata
+        // Konversi semester angka ke teks
         $semester_kata = ($semester_filter == 1) ? 'Ganjil' : 'Genap';
 
         $listTahun = Nilai::select('tahun_ajaran')->distinct()->pluck('tahun_ajaran')->toArray();
         if (empty($listTahun)) {
-            $listTahun = ['2023/2024', '2024/2025', '2025/2026', '2026/2027'];
+            $listTahun = ['2024/2025', '2025/2026'];
         }
 
+        // 2. Ambil Jadwal berdasarkan Kelas
+        // Menggunakan nama_kelas dari objek relasi kelas
         $jadwals = Jadwal::with(['mapel', 'guru'])
-                    ->where('kelas', trim($siswa->kelas))
+                    ->where('kelas', trim($siswa->kelas->nama_kelas ?? $siswa->kelas))
                     ->get();
 
         $rekapNilai = [];
 
         foreach ($jadwals as $jadwal) {
+            // Ambil data nilai berdasarkan filter tahun yang dipilih
             $nilaiData = Nilai::where('siswa_id', $siswa->id)
-                            ->where('jadwal_id', $jadwal->id)
-                            ->where('tahun_ajaran', $tahun_filter)
-                            ->get();
+                                ->where('jadwal_id', $jadwal->id)
+                                ->where('tahun_ajaran', $tahun_filter)
+                                ->get();
 
-            // 3. Filter Harian
-            $semuaHarian = $nilaiData->filter(function($n) use ($semester_filter) {
+            // 3. Filter Nilai Harian (Dibulatkan tanpa koma)
+            $semuaHarian = $nilaiData->filter(function($n) use ($semester_filter, $semester_kata) {
                 $jenis = strtolower($n->jenis);
-                return in_array($jenis, ['harian', 'ulangan_bab', 'tugas', 'ulangan']) 
-                       && $n->semester == $semester_filter;
+                $cocokSem = ($n->semester == $semester_filter || $n->semester == $semester_kata);
+                return in_array($jenis, ['harian', 'tugas', 'ulangan']) && $cocokSem;
             });
-            $harian = $semuaHarian->count() > 0 ? $semuaHarian->avg('nilai') : 0;
+            // round() digunakan untuk menghilangkan koma
+            $harian = $semuaHarian->count() > 0 ? round($semuaHarian->avg('nilai')) : 0;
 
             // 4. Filter UTS
-            $dataUts = $nilaiData->filter(function($n) use ($semester_kata) {
-                return strtolower($n->jenis) == 'uts' && $n->semester == $semester_kata;
+            $dataUts = $nilaiData->filter(function($n) use ($semester_filter, $semester_kata) {
+                $cocokSem = ($n->semester == $semester_filter || $n->semester == $semester_kata);
+                return strtolower($n->jenis) == 'uts' && $cocokSem;
             })->first();
-            $uts = $dataUts ? $dataUts->nilai : 0;
+            $uts = $dataUts ? round($dataUts->nilai) : 0;
 
             // 5. Filter UAS
-            $dataUas = $nilaiData->filter(function($n) use ($semester_kata) {
-                return strtolower($n->jenis) == 'uas' && $n->semester == $semester_kata;
+            $dataUas = $nilaiData->filter(function($n) use ($semester_filter, $semester_kata) {
+                $cocokSem = ($n->semester == $semester_filter || $n->semester == $semester_kata);
+                return strtolower($n->jenis) == 'uas' && $cocokSem;
             })->first();
-            $uas = $dataUas ? $dataUas->nilai : 0;
+            $uas = $dataUas ? round($dataUas->nilai) : 0;
 
+            // 6. Hitung Nilai Akhir (Tanpa Koma)
             $komponen = collect([$harian, $uts, $uas])->filter(fn($v) => $v > 0);
-            
-            if ($komponen->count() > 0) {
-                $rataRata = $komponen->sum() / $komponen->count();
-                $akhir = number_format($rataRata, 1, '.', ''); 
-            } else {
-                $akhir = 0;
-            }
+            $akhir = $komponen->count() > 0 ? round($komponen->sum() / $komponen->count()) : 0;
 
             $rekapNilai[] = [
                 'mapel' => $jadwal->mapel->nama_mapel ?? 'Mata Pelajaran',
-                'harian' => number_format($harian, 1, '.', ''),
+                'harian' => $harian,
                 'uts' => $uts,
                 'uas' => $uas,
                 'akhir' => $akhir,
@@ -154,7 +159,7 @@ public function dashboard()
         return view('siswa.nilai', compact('rekapNilai', 'siswa', 'setup', 'listTahun', 'tahun_filter', 'semester_filter'));
     }
 
-    private function hitungPredikat($nilai)
+    private function hitungPredikat(int $nilai)
     {
         if ($nilai >= 85) return 'A';
         if ($nilai >= 75) return 'B';
@@ -227,7 +232,7 @@ public function dashboard()
         }
 
         // Query Jadwal berdasarkan kelas siswa
-        $jadwals = Jadwal::where('kelas', trim($siswa->kelas))
+        $jadwals = Jadwal::where('kelas', trim($siswa->kelas->nama_kelas ))
                     ->with(['mapel', 'guru']) 
                     ->orderBy('jam_mulai', 'asc')
                     ->get()
