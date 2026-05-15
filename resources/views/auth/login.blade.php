@@ -1,21 +1,21 @@
 <x-guest-layout>
-    {{-- Container Utama --}}
-    <div class="min-h-screen w-full flex items-center justify-center relative overflow-hidden font-sans antialiased py-6 px-4">
+    {{-- Lapisan 1: Background Utama via CSS (Lebih Stabil) --}}
+    <div class="min-h-screen w-full flex items-center justify-center relative font-sans antialiased py-6 px-4 bg-slate-900">
         
-        {{-- Lapisan 1: Foto Sekolah (Paling Belakang - z-0) --}}
-        <div class="absolute inset-0 z-0">
-            <img src="{{ asset('bg_sekolah.jpeg') }}" 
-                 alt="Background SMAN 1 Jejangkit" 
-                 class="w-full h-full object-cover object-center scale-105 filter blur-[2px]">
+        {{-- Background Image dengan Style Inline agar Cover Sempurna --}}
+        <div class="absolute inset-0 z-0" 
+             style="background-image: url('{{ asset('bg_sekolah.jpeg') }}'); 
+                    background-size: cover; 
+                    background-position: center; 
+                    background-repeat: no-repeat;
+                    background-attachment: fixed;">
         </div>
         
-        {{-- Lapisan 2: Overlay Gradasi Biru Gelap (Tengah - z-10) --}}
-        {{-- Ini berfungsi agar foto tidak terlalu terang dan form login mudah dibaca --}}
-        <div class="absolute inset-0 bg-gradient-to-br from-blue-900/40 via-indigo-950/85 to-purple-950/90 z-10 backdrop-blur-[1px]"></div>
+        {{-- Lapisan 2: Overlay Gradasi Biru Gelap (Sedikit lebih gelap agar kontras) --}}
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-950/60 via-indigo-950/85 to-black z-10 backdrop-blur-[1px]"></div>
 
-        {{-- Lapisan 3: Kartu Login (Paling Depan - z-20) --}}
-        {{-- Ditambahkan 'relative z-20' agar kartu muncul di atas overlay biru --}}
-        <div class="max-w-[19rem] w-full bg-white/95 backdrop-blur-md p-6 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.4)] relative z-20 border border-white/20">
+        {{-- Lapisan 3: Kartu Login --}}
+        <div class="max-w-[19rem] w-full bg-white/95 backdrop-blur-md p-6 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.6)] relative z-20 border border-white/20 animate-fade-in">
             
             {{-- Header: Logo & Judul --}}
             <div class="text-center mb-4">
@@ -35,12 +35,10 @@
 
             <x-auth-session-status class="text-[9px] text-center mb-3" :status="session('status')" />
 
-            {{-- Form Login --}}
             <form method="POST" action="{{ route('login') }}" class="space-y-3.5">
                 @csrf
 
                 <div class="space-y-2.5">
-                    {{-- Input Email --}}
                     <div>
                         <label for="email" class="block text-[8px] font-bold text-gray-500 uppercase ml-1 mb-0.5 tracking-wider">Email</label>
                         <div class="relative group">
@@ -50,14 +48,12 @@
                                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                                 </svg>
                             </div>
-                            <input id="email" name="email" type="email" :value="old('email')" required autofocus 
-                                class="appearance-none block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-[10.5px] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm leading-none bg-white/50" 
+                            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus 
+                                class="appearance-none block w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-[10.5px] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm leading-none bg-white" 
                                 placeholder="Email user">
                         </div>
-                        <x-input-error :messages="$errors->get('email')" class="mt-0.5 text-[8px]" />
                     </div>
 
-                    {{-- Input Password --}}
                     <div>
                         <label for="password" class="block text-[8px] font-bold text-gray-500 uppercase ml-1 mb-0.5 tracking-wider">Password</label>
                         <div class="relative group">
@@ -66,11 +62,9 @@
                                     <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                                 </svg>
                             </div>
-                            
                             <input id="password" name="password" type="password" required autocomplete="current-password"
-                                class="appearance-none block w-full pl-8 pr-9 py-1.5 border border-gray-200 rounded-lg text-[10.5px] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm leading-none bg-white/50" 
+                                class="appearance-none block w-full pl-8 pr-9 py-1.5 border border-gray-200 rounded-lg text-[10.5px] placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition duration-200 shadow-sm leading-none bg-white" 
                                 placeholder="••••••••">
-                            
                             <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-gray-400 hover:text-blue-600 focus:outline-none">
                                 <svg id="eye-open" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -81,41 +75,30 @@
                                 </svg>
                             </button>
                         </div>
-                        <x-input-error :messages="$errors->get('password')" class="mt-0.5 text-[8px]" />
                     </div>
                 </div>
 
                 <div class="flex items-center">
-                    <input id="remember_me" name="remember" type="checkbox" 
-                        class="h-2.5 w-2.5 text-blue-600 focus:ring-0 border-gray-300 rounded bg-white/50">
-                    <label for="remember_me" class="ml-2 block text-[9px] text-gray-500 font-medium">
-                        Ingat saya
-                    </label>
+                    <input id="remember_me" name="remember" type="checkbox" class="h-2.5 w-2.5 text-blue-600 focus:ring-0 border-gray-300 rounded bg-white">
+                    <label for="remember_me" class="ml-2 block text-[9px] text-gray-500 font-medium">Ingat saya</label>
                 </div>
 
-                <div>
-                    <button type="submit" 
-                        class="w-full flex justify-center py-2 px-4 border border-transparent text-[10px] font-extrabold rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none shadow-lg shadow-blue-500/20 active:scale-95 transition-all duration-200 uppercase tracking-[0.15em]">
-                        Login
-                    </button>
-                </div>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent text-[10px] font-extrabold rounded-lg text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/20 active:scale-95 transition-all duration-200 uppercase tracking-[0.15em]">
+                    Login
+                </button>
             </form>
 
             <div class="mt-5 text-center pt-2 border-t border-gray-100/70">
-                <p class="text-[7.5px] text-gray-400 uppercase font-bold tracking-widest">
-                    SIAKAD SMANJA &copy; 2026
-                </p>
+                <p class="text-[7.5px] text-gray-400 uppercase font-bold tracking-widest">SIAKAD SMANJA &copy; 2026</p>
             </div>
         </div>
     </div>
 
-    {{-- Script JavaScript --}}
     <script>
         function togglePasswordVisibility() {
             const passwordField = document.getElementById('password');
             const eyeOpen = document.getElementById('eye-open');
             const eyeClosed = document.getElementById('eye-closed');
-
             if (passwordField.type === 'password') {
                 passwordField.type = 'text';
                 eyeOpen.classList.add('hidden');
