@@ -60,9 +60,11 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
         
         // --- DASHBOARD & PROFIL ---
-        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+       Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
         Route::get('/siswa/profil', [SiswaController::class, 'profil'])->name('siswa.profil');
-
+        Route::get('/profil', [AdminController::class, 'profil'])->name('profil');
+        Route::post('/profil/update', [AdminController::class, 'updateProfil'])->name('profil.update');
+        
         // --- MASTER DATA (RESOURCE) ---
         Route::resource('guru', AdminGuruController::class);
         Route::resource('siswa', AdminSiswaController::class);

@@ -14,11 +14,16 @@ use App\Models\Nilai;
 use App\Models\Kelas; 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
-    /**
+/**
      * Tampilan Dashboard Admin (Fix Grafik & Relasi)
+     */
+/**
+     * Tampilan Dashboard Admin (Fix Grafik & Relasi Sesuai Model Jadwal)
      */
     public function dashboard()
     {
@@ -43,23 +48,23 @@ class AdminController extends Controller
         foreach ($daftarKelas as $k) {
             $labels[] = $k->nama_kelas;
 
-            // Hitung Hadir (H) menggunakan kelas_id
+            // Hitung Hadir (Mendukung opsi format 'H' atau 'Hadir')
             $dataHadir[] = Absensi::whereDate('tanggal', Carbon::today())
-                ->where('status', 'H')
+                ->whereIn('status', ['H', 'Hadir', 'h', 'hadir'])
                 ->whereHas('siswa', function($q) use ($k) {
                     $q->where('kelas_id', $k->id);
                 })->count();
 
-            // Hitung Izin & Sakit (I & S) menggunakan kelas_id
+            // Hitung Izin & Sakit (Mendukung opsi format singkatan maupun teks lengkap)
             $dataIzin[] = Absensi::whereDate('tanggal', Carbon::today())
-                ->whereIn('status', ['I', 'S'])
+                ->whereIn('status', ['I', 'Izin', 'i', 'izin', 'S', 'Sakit', 's', 'sakit'])
                 ->whereHas('siswa', function($q) use ($k) {
                     $q->where('kelas_id', $k->id);
                 })->count();
 
-            // Hitung Alpa (A) menggunakan kelas_id
+            // Hitung Alpa (Mendukung opsi format 'A' atau 'Alpa')
             $dataAlpa[] = Absensi::whereDate('tanggal', Carbon::today())
-                ->where('status', 'A')
+                ->whereIn('status', ['A', 'Alpa', 'a', 'alpa'])
                 ->whereHas('siswa', function($q) use ($k) {
                     $q->where('kelas_id', $k->id);
                 })->count();
@@ -72,7 +77,8 @@ class AdminController extends Controller
             'alpa'   => $dataAlpa,
         ];
 
-        $jadwalHariIni = Jadwal::with(['mapel', 'guru'])
+        // --- LOAD JADWAL AKTIF: Menggunakan 'kelasRelation' agar sesuai dengan Model Jadwal ---
+        $jadwalHariIni = Jadwal::with(['mapel', 'guru', 'kelasRelation'])
             ->where('hari', Carbon::now()->translatedFormat('l')) 
             ->orderBy('jam_mulai', 'asc')
             ->get();
@@ -84,11 +90,12 @@ class AdminController extends Controller
     }
 
     /**
-     * Manajemen Jadwal
+     * Manajemen Jadwal (Menggunakan relasi yang valid)
      */
     public function indexJadwal()
     {
-        $jadwals = Jadwal::with(['mapel', 'guru', 'dataKelas'])->latest()->get();
+        // dataKelas diganti menjadi kelasRelation agar tidak memicu RelationNotFoundException
+        $jadwals = Jadwal::with(['mapel', 'guru', 'kelasRelation'])->latest()->get();
         $datakelas = Kelas::all();
         $datamapel = Mapel::all();
         $dataguru = Guru::all();
@@ -372,5 +379,55 @@ public function cetakRaport(int $id)
         ]);
 
         return $pdf->setPaper('a4', 'landscape')->stream("Rekap_Bulanan_{$kelas->nama_kelas}.pdf");
+    }
+
+    /**
+     * Tampilan Profil Admin yang Sedang Login
+     */
+    public function profil()
+    {
+        // Mengambil data user (admin) yang sedang login saat ini lewat Auth
+        $admin = auth()->user(); 
+        
+        return view('admin.profil', compact('admin'));
+    }
+
+    /**
+     * Proses Update Data & Keamanan Profil Admin
+     */
+    public function updateProfil(Request $request)
+    {
+        // 1. Ambil ID user yang sedang login
+        $userId = auth()->id();
+
+        // 2. Validasi
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($userId)],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        // 3. Ambil model User secara eksplisit dari Model
+        $admin = \App\Models\User::find($userId);
+
+        if (!$admin) {
+            return redirect()->back()->with('error', 'User tidak ditemukan.');
+        }
+
+        // 4. Siapkan data update
+        $dataUpdate = [
+            'name' => $request->name,
+            'email' => $request->email,
+        ];
+
+        // 5. Tambahkan password jika diisi
+        if ($request->filled('password')) {
+            $dataUpdate['password'] = Hash::make($request->password);
+        }
+
+        // 6. Update langsung menggunakan model
+        $admin->update($dataUpdate);
+
+        return redirect()->back()->with('success', 'Profil Anda berhasil diperbarui!');
     }
 }

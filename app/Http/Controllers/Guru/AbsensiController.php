@@ -124,13 +124,13 @@ class AbsensiController extends Controller
                 'H' => 'Hadir', 
                 'I' => 'Izin', 
                 'S' => 'Sakit', 
-                'A' => 'Alfa'
+                'A' => 'Alpa'
             ];
             
             $inisial = strtoupper(substr($statusRaw, 0, 1));
             $status  = $statusMap[$inisial] ?? $statusRaw;
 
-            $keteranganDefault = ($status == 'Alfa') 
+            $keteranganDefault = ($status == 'Alpa') 
                 ? "Siswa tidak hadir pada mata pelajaran " . ($jadwal->mapel->nama_mapel ?? 'Mata Pelajaran') 
                 : null;
 
@@ -142,7 +142,7 @@ class AbsensiController extends Controller
                 'keterangan' => $request->keterangan[$siswa_id] ?? $keteranganDefault
             ]);
 
-            if ($status == 'Alfa') {
+            if ($status == 'Alpa') {
                 $this->kirimNotifikasiKeOrangTua($absensi);
             }
         }
@@ -241,8 +241,8 @@ class AbsensiController extends Controller
     {
         $absensi = Absensi::findOrFail($id);
 
-        if (!in_array(strtoupper($absensi->status), ['ALFA', 'A'])) {
-            return back()->with('error', 'Hanya absensi Alfa yang bisa dikirim notifikasi.');
+        if (!in_array(strtoupper($absensi->status), ['ALPA', 'A'])) {
+            return back()->with('error', 'Hanya absensi Alpa yang bisa dikirim notifikasi.');
         }
 
         $hasil = $this->kirimNotifikasiKeOrangTua($absensi);
@@ -252,20 +252,34 @@ class AbsensiController extends Controller
             : back()->with('error', 'Gagal mengirim ulang notifikasi.');
     }
 
-    /**
-     * 10. Kirim WA via Fonnte
+     /**
+     * 10. Kirim WA via Fonnte (Format Ringkas + Detail Sekolah & Kelas)
      */
     private function kirimNotifikasiKeOrangTua(Absensi $absensi): bool
     {
         $siswa = $absensi->siswa;
-        if ($siswa && $siswa->no_hp_ortu) {
+        
+        if ($siswa && $siswa->no_wa_ortu) {
+            // Ambil data tanggal, mapel, dan nama kelas
             $tgl = Carbon::parse($absensi->tanggal)->translatedFormat('d F Y');
             $mapel = $absensi->jadwal->mapel->nama_mapel ?? 'Mata Pelajaran';
-            $pesan = "🔔 *INFO SIAKAD*\nYth. Orang Tua dari *{$siswa->nama}*,\nPutra/putri Anda tercatat *ALFA* pada:\n📅 Tanggal: {$tgl}\n📖 Mapel: {$mapel}\n\nMohon konfirmasinya.";
+            $namaKelas = $siswa->dataKelas->nama_kelas ?? ($absensi->jadwal->kelas ?? '-');
+
+            // FORMAT TEKS RINGKAS DENGAN BARIS NAMA SEKOLAH
+            $pesan = "🔔 *PEMBERITAHUAN ABSENSI*\n" .
+                     "🏫 *SMAN 1 JEJANGKIT*\n\n" .
+                     "Kepada Yth. Orang Tua/Wali dari:\n" .
+                     "Siswa: *{$siswa->nama}*\n" .
+                     "Kelas: *{$namaKelas}*\n" .
+                     "Status: *ALPA (Tidak Hadir)*\n" .
+                     "Mapel: *{$mapel}*\n" .
+                     "Tanggal: *{$tgl}*\n\n" .
+                     "Mohon bapak/ibu dapat memberikan keterangan terkait ketidakhadiran putra/putrinya. Terima kasih.";
 
             try {
+                // Eksekusi API Request ke Fonnte Gateway
                 $response = Http::withHeaders(['Authorization' => 'CKW3RDixtZqdnn4k5hkP'])->asForm()->post('https://api.fonnte.com/send', [
-                    'target' => $siswa->no_hp_ortu, 
+                    'target' => $siswa->no_wa_ortu, 
                     'message' => $pesan, 
                     'countryCode' => '62'
                 ]);
@@ -276,11 +290,13 @@ class AbsensiController extends Controller
                     $absensi->update(['status_wa' => $statusWA]);
                 }
 
+                // SINKRONISASI LOG NOTIFIKASI
                 Notifikasi::create([
-                    'absensi_id' => $absensi->id, 
-                    'siswa_id' => $siswa->id, 
-                    'nomor_tujuan' => $siswa->no_hp_ortu, 
-                    'isi_pesan' => $pesan, 
+                    'absensi_id'   => $absensi->id, 
+                    'user_id'      => Auth::id(), 
+                    'kelas'        => $namaKelas, 
+                    'tanggal'      => Carbon::now(),
+                    'isi_pesan'    => $pesan, 
                     'status_kirim' => ($statusWA == 'sent' ? 'Terkirim' : 'Gagal')
                 ]);
 
@@ -292,4 +308,4 @@ class AbsensiController extends Controller
         }
         return false;
     }
-}
+}    

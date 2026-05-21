@@ -42,14 +42,13 @@
                 <i class="fa-solid fa-house w-6 text-center {{ request()->routeIs('admin.dashboard') ? 'text-white' : 'text-blue-400 group-hover:text-white' }}"></i>
                 <span class="ml-3 text-sm" x-show="sidebarOpen">Dashboard</span>
             </a>
-
             {{-- Data Guru --}}
             <a href="{{ route('admin.guru.index') }}" class="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 group whitespace-nowrap {{ request()->routeIs('admin.guru.*') ? 'bg-blue-700 font-bold shadow-lg text-white' : 'text-blue-100 hover:bg-blue-800 hover:text-white' }}">
                 <i class="fa-solid fa-chalkboard-user w-6 text-center {{ request()->routeIs('admin.guru.*') ? 'text-white' : 'text-blue-400 group-hover:text-white' }}"></i>
                 <span class="ml-3 text-sm" x-show="sidebarOpen">Data Guru</span>
             </a>
 
-            {{-- Data Kelas (PERBAIKAN IKON DI SINI) --}}
+            {{-- Data Kelas --}}
             <a href="{{ route('admin.kelas.index') }}" class="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 group whitespace-nowrap {{ request()->routeIs('admin.kelas.*') ? 'bg-blue-700 font-bold shadow-lg text-white' : 'text-blue-100 hover:bg-blue-800 hover:text-white' }}">
                 <i class="fa-solid fa-school w-6 text-center {{ request()->routeIs('admin.kelas.*') ? 'text-white' : 'text-blue-400 group-hover:text-white' }}"></i>
                 <span class="ml-3 text-sm" x-show="sidebarOpen">Data Kelas</span>
@@ -117,15 +116,17 @@
             </div>
 
             <div class="flex items-center gap-6">
-                <div class="flex items-center gap-3 border-r pr-6 border-gray-100 text-right">
+                {{-- ⭐️ PERBAIKAN: Pembungkus Nama Admin Sekarang Bisa Diklik Menuju Profil ⭐️ --}}
+                <a href="{{ route('admin.profil') }}" class="flex items-center gap-3 border-r pr-6 border-gray-100 text-right group hover:opacity-80 transition-all">
                     <div>
-                        <p class="text-xs font-bold text-gray-900 leading-none capitalize">{{ auth()->user()->name }}</p>
+                        <p class="text-xs font-bold text-gray-900 leading-none capitalize group-hover:text-blue-600 transition-colors">{{ auth()->user()->name }}</p>
                         <p class="text-[10px] text-blue-600 font-semibold mt-1 uppercase">Administrator</p>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border-2 border-blue-200">
+                    <div class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border-2 border-blue-200 shadow-sm group-hover:border-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                     </div>
-                </div>
+                </a>
+                
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider transition-colors">
