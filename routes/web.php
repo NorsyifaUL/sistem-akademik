@@ -26,7 +26,7 @@ use App\Http\Controllers\Admin\AbsensiController as AdminAbsensiController;
 | 1. HOMEPAGE
 |--------------------------------------------------------------------------
 */
-Route::get('/', function () { return view('welcome'); });
+Route::get('/', function () { return view('auth.login'); });
 
 /*
 |--------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 @section('content')
 @php
-    // 1. Hitung Nilai Akhir untuk semua siswa dan simpan dalam koleksi sementara
+    // 1. Hitung Nilai Akhir untuk semua siswa dan simpan dalam koleksi sementara (Untuk Perhitungan Ranking)
     $koleksiRanking = $rekapData->map(function($s) use ($jadwal) {
         $nilaiSiswa = $s->nilais->where('jadwal_id', $jadwal->id);
         
@@ -21,7 +21,9 @@
             $uts = $nilaiSiswa->filter(fn($n) => strtolower($n->jenis) == 'uts')->first()->nilai ?? 0;
             $uas = $nilaiSiswa->filter(fn($n) => strtolower($n->jenis) == 'uas')->first()->nilai ?? 0;
             
-            $totalMurni = ($rataUH + $uts + $uas) > 0 ? ($rataUH + $uts + $uas) / 3 : 0;
+            // SINKRONISASI RUMUS PERSENTASE: (Harian 40% + UTS 30% + UAS 30%)
+            $calc = ($rataUH * 0.4) + ($uts * 0.3) + ($uas * 0.3);
+            $totalMurni = $calc > 0 ? round($calc) : 0;
         }
 
         return [
@@ -120,7 +122,7 @@
                 @php
                     $nilaiSiswa = $s->nilais->where('jadwal_id', $jadwal->id);
                     
-                    // Kolom Detail (Harian, UTS, UAS)
+                    // Ambil detail nilai komponen
                     $skorUH = $nilaiSiswa->filter(function($item) {
                         $jenisClean = strtolower(str_replace(' ', '', $item->jenis));
                         return preg_match('/uh[1-4]/i', $jenisClean) || $jenisClean == 'harian';
@@ -130,14 +132,16 @@
                     $uts = $nilaiSiswa->filter(fn($n) => strtolower($n->jenis) == 'uts')->first()->nilai ?? 0;
                     $uas = $nilaiSiswa->filter(fn($n) => strtolower($n->jenis) == 'uas')->first()->nilai ?? 0;
 
-                    // Logika Pengambilan Data Rekap (Sinkronisasi dengan Simpan Kolektif)
+                    // Logika Pengambilan Data Rekap
                     $dataRekap = $nilaiSiswa->where('jenis', 'rekap')->first();
                     
                     if ($dataRekap) {
                         $nilaiAkhir = $dataRekap->nilai;
-                        $deskripsi = $dataRekap->keterangan; // Mengambil langsung dari kolom keterangan
+                        $deskripsi = $dataRekap->keterangan; 
                     } else {
-                        $nilaiAkhir = ($rataUH + $uts + $uas) > 0 ? round(($rataUH + $uts + $uas) / 3) : 0;
+                        // FALLBACK SINKRONISASI: Menghitung persentase murni jika row rekap belum tercipta
+                        $calcFallback = ($rataUH * 0.4) + ($uts * 0.3) + ($uas * 0.3);
+                        $nilaiAkhir = $calcFallback > 0 ? round($calcFallback) : 0;
                         $deskripsi = null; 
                     }
 

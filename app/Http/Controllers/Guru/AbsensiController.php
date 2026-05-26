@@ -7,7 +7,7 @@ use App\Models\Absensi;
 use App\Models\Siswa;
 use App\Models\Jadwal;
 use App\Models\Guru;
-use App\Models\Kelas; // Tambahan penting agar tidak error
+use App\Models\Kelas; 
 use App\Models\Notifikasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -67,20 +67,33 @@ class AbsensiController extends Controller
     }
 
     /**
-     * 3. Form Input Presensi Massal (PERBAIKAN QUERY KELAS)
+     * 3. Form Input Presensi Massal (PERBAIKAN SINKRONISASI DATA HOSTING)
      */
-    public function formAbsensi(int $jadwal_id): View
+    public function formAbsensi(int $jadwal_id)
     {
         $jadwal = Jadwal::with(['guru', 'mapel'])->findOrFail($jadwal_id);
         $user = Auth::user();
         $guru = Guru::where('user_id', $user->id)->first();
 
+        // JIKA LOGIN SEBAGAI GURU, JALANKAN SISTEM PENGECEKAN KEAMANAN DATA
         if ($user->role == 'guru') {
-            abort_if(!$guru || $jadwal->guru_id !== $guru->id, 403, 'Akses ditolak.');
+            // Pengaman 1: Jika user login belum ditautkan ke tabel gurus di database hosting
+            if (!$guru) {
+                return redirect()->route('guru.absensi.index')->with('error', 'Akses Gagal: Profil Guru Anda belum terhubung dengan akun user login ini di server hosting.');
+            }
+
+            // PERBAIKAN 1: Menggunakan != (loose comparison) agar mengabaikan perbedaan tipe data String/Integer dari hosting
+            if ($jadwal->guru_id != $guru->id) {
+                return redirect()->route('guru.absensi.index')->with('error', 'Akses Ditolak: Jadwal mengajar ini terdaftar atas nama guru lain di database sistem.');
+            }
         }
 
-        // --- PERBAIKAN: Cari ID Kelas berdasarkan string nama_kelas di Jadwal ---
-        $kelasObj = Kelas::where('nama_kelas', $jadwal->kelas)->first();
+        // PERBAIKAN 2: Antisipasi perbedaan penulisan spasi pada nama kelas (contoh: "X 2" vs "X2")
+        $kelasClean = str_replace(' ', '', $jadwal->kelas); // Menghilangkan spasi dari jadwal jika ada
+        
+        $kelasObj = Kelas::where('nama_kelas', $jadwal->kelas)
+            ->orWhereRaw("REPLACE(nama_kelas, ' ', '') = ?", [$kelasClean])
+            ->first();
         
         // Ambil siswa menggunakan kelas_id (menghindari error Unknown Column 'kelas')
         $siswa = Siswa::where('kelas_id', $kelasObj->id ?? 0)
@@ -239,20 +252,20 @@ class AbsensiController extends Controller
      */
     public function resendWa(int $id): RedirectResponse
     {
-        $absensi = Absensi::findOrFail($id);
+        $absences = Absensi::findOrFail($id);
 
-        if (!in_array(strtoupper($absensi->status), ['ALPA', 'A'])) {
+        if (!in_array(strtoupper($absences->status), ['ALPA', 'A'])) {
             return back()->with('error', 'Hanya absensi Alpa yang bisa dikirim notifikasi.');
         }
 
-        $hasil = $this->kirimNotifikasiKeOrangTua($absensi);
+        $hasil = $this->kirimNotifikasiKeOrangTua($absences);
 
         return $hasil 
             ? back()->with('success', 'Notifikasi berhasil dikirim ulang.') 
             : back()->with('error', 'Gagal mengirim ulang notifikasi.');
     }
 
-     /**
+    /**
      * 10. Kirim WA via Fonnte (Format Ringkas + Detail Sekolah & Kelas)
      */
     private function kirimNotifikasiKeOrangTua(Absensi $absensi): bool
@@ -308,4 +321,4 @@ class AbsensiController extends Controller
         }
         return false;
     }
-}    
+}

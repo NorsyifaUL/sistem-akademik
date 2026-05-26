@@ -108,122 +108,140 @@ private function getDashboardData()
     | MANAJEMEN NILAI
     |--------------------------------------------------------------------------
     */
-public function lihatNilaiSiswa(Request $request)
-{
-    $user = Auth::user();
-    $guru = $user->guru;
-    
-    // 1. Ambil data meta dashboard (semester & tahun ajaran aktif)
-    $meta = $this->getDashboardData();
-    $semesterAktif = $meta['semester_aktif']; 
-    $tahunAjaran = $meta['tahun_ajaran']; 
-    $setting = Setting::first();
-    
-    // 2. Ambil daftar jadwal yang diampu oleh guru tersebut
-    $jadwals = Jadwal::where('guru_id', $guru->id)->with(['mapel'])->get();
-    
-    $jadwalId = $request->query('jadwal_id');
-    $jenisNilai = strtolower(trim($request->query('jenis_nilai', 'harian'))); 
-    
-    $siswaData = collect();
-    $jadwalTerpilih = null;
-
-    if ($jadwalId) {
-        $jadwalTerpilih = Jadwal::with(['mapel'])->where('guru_id', $guru->id)->find($jadwalId);
+    public function lihatNilaiSiswa(Request $request)
+    {
+        $user = Auth::user();
+        $guru = $user->guru;
         
-        if ($jadwalTerpilih) {
-            // Ambil data siswa yang terdaftar di kelas pada jadwal tersebut
-            $siswas = Siswa::whereHas('kelas', function($q) use ($jadwalTerpilih) {
-                $q->where('nama_kelas', $jadwalTerpilih->kelas);
-            })->orderBy('nama', 'asc')->get();
+        // 1. Ambil data meta dashboard (semester & tahun ajaran aktif)
+        $meta = $this->getDashboardData();
+        $semesterAktif = $meta['semester_aktif']; 
+        $tahunAjaran = $meta['tahun_ajaran']; 
+        $setting = Setting::first();
+        
+        // 2. Ambil daftar jadwal yang diampu oleh guru tersebut
+        $jadwals = Jadwal::where('guru_id', $guru->id)->with(['mapel'])->get();
+        
+        $jadwalId = $request->query('jadwal_id');
+        $jenisNilai = strtolower(trim($request->query('jenis_nilai', 'harian'))); 
+        
+        $siswaData = collect();
+        $jadwalTerpilih = null;
 
-            $siswaData = $siswas->map(function($s) use ($jadwalId, $jenisNilai, $semesterAktif, $tahunAjaran) {
-                // Query kolektif nilai siswa untuk efisiensi
-                $nilais = Nilai::where('siswa_id', $s->id)
-                    ->where('jadwal_id', $jadwalId)
-                    ->where('semester', $semesterAktif)
-                    ->where('tahun_ajaran', $tahunAjaran)
-                    ->get();
+        if ($jadwalId) {
+            $jadwalTerpilih = Jadwal::with(['mapel'])->where('guru_id', $guru->id)->find($jadwalId);
+            
+            if ($jadwalTerpilih) {
+                // Ambil data siswa yang terdaftar di kelas pada jadwal tersebut
+                $siswas = Siswa::whereHas('kelas', function($q) use ($jadwalTerpilih) {
+                    $q->where('nama_kelas', $jadwalTerpilih->kelas);
+                })->orderBy('nama', 'asc')->get();
 
-                // 3. Inisialisasi Default Variabel
-                $s->uh1 = ''; $s->uh2 = ''; $s->uh3 = ''; $s->uh4 = ''; 
-                $s->harian = 0; $s->uts = 0; $s->uas = 0;
-                $s->nilai_existing = ''; $s->deskripsi_existing = '';
-                $s->nilai_akhir_calculated = 0; 
+                $siswaData = $siswas->map(function($s) use ($jadwalId, $jenisNilai, $semesterAktif, $tahunAjaran) {
+                    // Query kolektif nilai siswa untuk efisiensi
+                    $nilais = Nilai::where('siswa_id', $s->id)
+                        ->where('jadwal_id', $jadwalId)
+                        ->where('semester', $semesterAktif)
+                        ->where('tahun_ajaran', $tahunAjaran)
+                        ->get();
 
-                // 4. Logika Berdasarkan Mode Jenis Nilai
-                
-                // --- MODE HARIAN ---
-                if ($jenisNilai == 'harian') {
-                    $s->uh1 = $nilais->where('aspek', 'uh1')->first()->nilai ?? '';
-                    $s->uh2 = $nilais->where('aspek', 'uh2')->first()->nilai ?? '';
-                    $s->uh3 = $nilais->where('aspek', 'uh3')->first()->nilai ?? '';
-                    $s->uh4 = $nilais->where('aspek', 'uh4')->first()->nilai ?? '';
-                    $s->harian = $nilais->where('aspek', 'rata_rata')->first()->nilai ?? 0;
+                    // 3. Inisialisasi Default Variabel
+                    $s->uh1 = ''; $s->uh2 = ''; $s->uh3 = ''; $s->uh4 = ''; 
+                    $s->harian = 0; $s->uts = 0; $s->uas = 0;
+                    $s->nilai_existing = ''; $s->deskripsi_existing = '';
+                    $s->nilai_akhir_calculated = 0; 
+
+                    // 4. Logika Berdasarkan Mode Jenis Nilai
                     
-                    $s->nilai_akhir_calculated = $s->harian;
-                } 
-                
-                // --- MODE UTS / UAS ---
-                elseif (in_array($jenisNilai, ['uts', 'uas'])) {
-                    // Cari baris nilai yang jenisnya sesuai (uts/uas)
-                    $findRow = $nilais->where('jenis', $jenisNilai)->whereNull('aspek')->first();
-                    if ($findRow) {
-                        $s->nilai_existing = $findRow->nilai;
-                        $s->deskripsi_existing = $findRow->keterangan;
-                    }
-                    $s->nilai_akhir_calculated = $s->nilai_existing ?? 0;
-                } 
+                    // --- MODE HARIAN ---
+                    if ($jenisNilai == 'harian') {
+                        $s->uh1 = $nilais->where('aspek', 'uh1')->first()->nilai ?? '';
+                        $s->uh2 = $nilais->where('aspek', 'uh2')->first()->nilai ?? '';
+                        $s->uh3 = $nilais->where('aspek', 'uh3')->first()->nilai ?? '';
+                        $s->uh4 = $nilais->where('aspek', 'uh4')->first()->nilai ?? '';
+                        $s->harian = $nilais->where('aspek', 'rata_rata')->first()->nilai ?? 0;
+                        
+                        $s->nilai_akhir_calculated = $s->harian;
+                    } 
+                    
+                    // --- MODE UTS / UAS ---
+                    elseif (in_array($jenisNilai, ['uts', 'uas'])) {
+                        // Cari baris nilai yang jenisnya sesuai (uts/uas)
+                        $findRow = $nilais->where('jenis', $jenisNilai)->whereNull('aspek')->first();
+                        if ($findRow) {
+                            $s->nilai_existing = $findRow->nilai;
+                            $s->deskripsi_existing = $findRow->keterangan;
+                        }
+                        $s->nilai_akhir_calculated = $s->nilai_existing ?? 0;
+                    } 
 
-                // --- MODE REKAP / AKHIR (RAPORT) ---
-                elseif ($jenisNilai == 'akhir' || $jenisNilai == 'rekap') {
-                    // Tarik semua komponen nilai untuk perhitungan
-                    $s->uts = $nilais->where('jenis', 'uts')->first()->nilai ?? 0;
-                    $s->uas = $nilais->where('jenis', 'uas')->first()->nilai ?? 0;
-                    $s->harian = $nilais->where('aspek', 'rata_rata')->first()->nilai ?? 0;
-                    
-                    // Cek apakah data rekap/akhir sudah ada di tabel nilais
-                    $rekapRow = $nilais->where('jenis', 'rekap')->first();
-                    
-                    if($rekapRow) {
+                    // --- MODE REKAP / AKHIR (RAPORT) ---
+                    elseif ($jenisNilai == 'akhir' || $jenisNilai == 'rekap') {
+                        // Tarik komponen komponen nilai terbaru dari database
+                        $s->uts = $nilais->where('jenis', 'uts')->first()->nilai ?? 0;
+                        $s->uas = $nilais->where('jenis', 'uas')->first()->nilai ?? 0;
+                        $s->harian = $nilais->where('aspek', 'rata_rata')->first()->nilai ?? 0;
+                        
+                        // OPSI A: Jika pakai Rumus Persentase (Harian 40% + UTS 30% + UAS 30%)
+                        $calc = ($s->harian * 0.4) + ($s->uts * 0.3) + ($s->uas * 0.3);
+                        $nilaiAkhir = ($calc > 0) ? round($calc) : 0;
+
+                        // OPSI B: Jika mau pakai Rumus Rata-rata Murni biasa (Aktifkan jika diperlukan)
+                        // $totalKomponen = $s->harian + $s->uts + $s->uas;
+                        // $nilaiAkhir = ($totalKomponen > 0) ? round($totalKomponen / 3) : 0;
+
+                        $s->nilai_akhir_calculated = $nilaiAkhir;
+
+                        // --- PROSES UPDATE/INSERT OTOMATIS KE DATABASE phpMyAdmin ---
+                        // Kode ini akan mengupdate ID 26 tadi dengan nilai kalkulasi baru secara otomatis
+                        $rekapRow = \App\Models\Nilai::updateOrCreate(
+                            [
+                                'siswa_id'     => $s->id,
+                                'jadwal_id'    => $jadwalId,
+                                'semester'     => $semesterAktif,
+                                'tahun_ajaran' => $tahunAjaran,
+                                'jenis'        => 'rekap', 
+                            ],
+                            [
+                                'aspek'        => 'akhir', // Menyesuaikan dengan kolom aspek di DB kamu
+                                'nilai'        => $nilaiAkhir,
+                                'keterangan'   => $this->generateDeskripsiOtomatis($nilaiAkhir)
+                            ]
+                        );
+
+                        // Tampilkan data hasil sinkronisasi terbaru ke view blade
                         $s->nilai_existing = $rekapRow->nilai;
                         $s->deskripsi_existing = $rekapRow->keterangan;
-                        $s->nilai_akhir_calculated = $rekapRow->nilai;
-                    } else {
-                        // Jika belum ada, lakukan kalkulasi: (Harian 40% + UTS 30% + UAS 30%)
-                        $calc = ($s->harian * 0.4) + ($s->uts * 0.3) + ($s->uas * 0.3);
-                        $s->nilai_akhir_calculated = ($calc > 0) ? round($calc) : 0;
                     }
-                }
 
-                // --- FALLBACK (ASPEK LAINNYA) ---
-                else {
-                    $findRow = $nilais->where('aspek', $jenisNilai)->first();
-                    if ($findRow) {
-                        $s->nilai_existing = $findRow->nilai;
-                        $s->deskripsi_existing = $findRow->keterangan;
+                    // --- FALLBACK (ASPEK LAINNYA) ---
+                    else {
+                        $findRow = $nilais->where('aspek', $jenisNilai)->first();
+                        if ($findRow) {
+                            $s->nilai_existing = $findRow->nilai;
+                            $s->deskripsi_existing = $findRow->keterangan;
+                        }
+                        $s->nilai_akhir_calculated = $s->nilai_existing ?? 0;
                     }
-                    $s->nilai_akhir_calculated = $s->nilai_existing ?? 0;
-                }
 
-                // 5. Generate Deskripsi Otomatis berdasarkan Nilai Akhir yang didapat
-                $s->deskripsi_otomatis = $this->generateDeskripsiOtomatis($s->nilai_akhir_calculated);
+                    // 5. Generate Deskripsi Otomatis berdasarkan Nilai Akhir yang didapat
+                    $s->deskripsi_otomatis = $this->generateDeskripsiOtomatis($s->nilai_akhir_calculated);
 
-                return $s;
-            });
+                    return $s;
+                });
+            }
         }
-    }
 
-    // 6. Return ke View
-    return view('guru.nilai.siswa_list', [
-        'jadwals' => $jadwals,
-        'siswaData' => $siswaData,
-        'jadwalTerpilih' => $jadwalTerpilih,
-        'setting' => $setting,
-        'semesterAktif' => $semesterAktif,
-        'jenisNilai' => $jenisNilai
-    ]);
-}
+        // 6. Return ke View
+        return view('guru.nilai.siswa_list', [
+            'jadwals' => $jadwals,
+            'siswaData' => $siswaData,
+            'jadwalTerpilih' => $jadwalTerpilih,
+            'setting' => $setting,
+            'semesterAktif' => $semesterAktif,
+            'jenisNilai' => $jenisNilai
+        ]);
+    }
 
 /**
  * Helper untuk membuat teks deskripsi berdasarkan range nilai (Pemicu Raport)

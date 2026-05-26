@@ -9,7 +9,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Guru - SIAKAD SMANJA</title>
-    @vite('resources/css/app.css')
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -44,7 +46,9 @@
         .font-academic { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-100 antialiased h-screen overflow-hidden" x-data="{ sidebarOpen: true }">
+<body class="bg-gray-100 antialiased h-screen overflow-hidden" 
+      x-data="{ sidebarOpen: window.innerWidth >= 1024 }"
+      @resize.window="sidebarOpen = window.innerWidth >= 1024">
 
 @php
     // LOGIKA PENGAMBILAN DATA GURU & JADWAL
@@ -147,14 +151,14 @@
                         <i class="fa-solid fa-file-invoice mr-2 opacity-70"></i> Rekap Nilai
                     </a>
 
-                 @if(Auth::user()->is_wali_kelas == 1)
-                    {{-- Submenu 3: Raport (Hanya muncul jika Wali Kelas) --}}
-                    <a href="{{ route('guru.raport.index') }}" 
-                    class="flex items-center px-4 py-2 text-xs rounded-lg transition-colors
-                    {{ request()->routeIs('guru.raport.*') ? 'bg-green-600 text-white font-bold' : 'text-green-200 hover:bg-green-800 hover:text-white' }}">
-                        <i class="fa-solid fa-user-graduate mr-2 opacity-70"></i> Sikap & Eskul (Raport)
-                    </a>
-                @endif
+                    @if(Auth::user()->is_wali_kelas == 1)
+                        {{-- Submenu 3: Raport (Hanya muncul jika Wali Kelas) --}}
+                        <a href="{{ route('guru.raport.index') }}" 
+                           class="flex items-center px-4 py-2 text-xs rounded-lg transition-colors
+                           {{ request()->routeIs('guru.raport.*') ? 'bg-green-600 text-white font-bold' : 'text-green-200 hover:bg-green-800 hover:text-white' }}">
+                            <i class="fa-solid fa-user-graduate mr-2 opacity-70"></i> Sikap & Eskul (Raport)
+                        </a>
+                    @endif
                 </div>
             </div>
 
@@ -170,43 +174,43 @@
     <div class="flex-1 flex flex-col min-w-0">
         
         {{-- HEADER --}}
-        <header class="bg-white border-b border-gray-200 h-16 flex justify-between items-center px-8 z-20 shadow-sm flex-shrink-0">
-            <div class="flex items-center gap-4">
-                {{-- Tombol Toggle Sidebar (Fitur Baru) --}}
-                <button @click="sidebarOpen = !sidebarOpen" class="text-gray-500 hover:text-green-700 transition-colors focus:outline-none">
-                    <i class="fa-solid fa-bars-staggered text-lg"></i>
+        <header class="bg-white border-b border-gray-200 h-16 flex justify-between items-center px-4 sm:px-8 z-20 shadow-sm flex-shrink-0 gap-2">
+            <div class="flex items-center gap-2 sm:gap-4 min-w-0">
+                {{-- Tombol Toggle Sidebar --}}
+                <button @click="sidebarOpen = !sidebarOpen" class="text-gray-500 hover:text-green-700 transition-colors focus:outline-none p-1">
+                    <i class="fa-solid fa-bars-staggered text-base sm:text-lg"></i>
                 </button>
-                <h1 class="text-lg font-bold text-gray-800 tracking-tight uppercase">
-                    Sistem Informasi <span class="text-green-700">Akademik</span> SMANJA
+                <h1 class="text-sm sm:text-lg font-bold text-gray-800 tracking-tight uppercase truncate">
+                    Sistem Informasi <span class="text-green-700 font-extrabold hidden md:inline">Akademik</span> SMANJA
                 </h1>
             </div>
 
-            <div class="flex items-center gap-6">
-                <a href="{{ route('guru.profil') }}" class="flex items-center gap-3 border-r pr-6 border-gray-100 text-left hover:bg-gray-50 p-2 rounded-lg transition-colors group">
-                    <div class="text-right">
-                        <p class="text-xs font-bold text-gray-900 leading-none capitalize">{{ auth()->user()->name }}</p>
-                        {{-- Nama Mapel Spesifik (Fitur Baru) --}}
-                        <p class="text-[10px] text-green-600 font-semibold mt-1 uppercase italic">
+            <div class="flex items-center gap-3 sm:gap-6 flex-shrink-0">
+                <a href="{{ route('guru.profil') }}" class="flex items-center gap-2 sm:gap-3 border-r pr-3 sm:pr-6 border-gray-100 text-right hover:bg-gray-50 p-1 sm:p-2 rounded-lg transition-colors group min-w-0">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-bold text-gray-900 leading-none capitalize truncate max-w-[120px] lg:max-w-[180px]">{{ auth()->user()->name }}</p>
+                        {{-- Nama Mapel Spesifik --}}
+                        <p class="text-[9px] sm:text-[10px] text-green-600 font-semibold mt-0.5 sm:mt-1 uppercase italic truncate max-w-[120px] lg:max-w-[180px]">
                             Guru {{ $namaMapel }}
                         </p>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-200 shadow-sm">
+                    <div class="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold border-2 border-green-200 shadow-sm text-xs sm:text-sm flex-shrink-0">
                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                     </div>
                 </a>
 
-                <form method="POST" action="{{ route('logout') }}">
+                <form method="POST" action="{{ route('logout') }}" class="flex-shrink-0">
                     @csrf
-                    <button type="submit" class="flex items-center gap-2 text-red-500 hover:text-red-700 text-xs font-bold uppercase tracking-wider transition-colors focus:outline-none">
-                        <i class="fa-solid fa-power-off"></i>
-                        Logout
+                    <button type="submit" class="flex items-center gap-1.5 text-red-500 hover:text-red-700 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors focus:outline-none">
+                        <i class="fa-solid fa-power-off text-xs"></i>
+                        <span class="hidden md:inline">Logout</span>
                     </button>
                 </form>
             </div>
         </header>
 
         {{-- MAIN CONTENT --}}
-        <main class="flex-1 overflow-y-auto bg-gray-50 p-8 content-scrollbar">
+        <main class="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-8 content-scrollbar">
             <div class="max-w-7xl mx-auto">
                 @yield('content')
             </div>

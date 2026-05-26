@@ -36,7 +36,7 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('siswa.dashboard');
         }
 
-        return redirect('/');
+        return redirect('/login');
     }
 
     /**

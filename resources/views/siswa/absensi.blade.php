@@ -9,7 +9,7 @@
             <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Laporan Kehadiran Mandiri</p>
         </div>
 
-        {{-- Form Filter - Lebih rapat --}}
+        {{-- Form Filter --}}
         <form action="{{ route('siswa.absensi') }}" method="GET" class="flex flex-wrap items-center gap-2">
             @php
                 $namaBulan = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
@@ -46,7 +46,7 @@
         </form>
     </div>
 
-    {{-- Statistik Cards - Lebih Kecil --}}
+    {{-- Statistik Cards --}}
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         @foreach([
             ['Hadir', $semuaAbsensi->where('status', 'Hadir')->count(), 'emerald-500', 'emerald-600'],
@@ -61,7 +61,7 @@
         @endforeach
     </div>
 
-    {{-- Tabel Utama - Fokus Tanpa Keterangan --}}
+    {{-- Tabel Utama --}}
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
