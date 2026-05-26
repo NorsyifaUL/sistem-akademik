@@ -42,8 +42,7 @@ class GuruController extends Controller
             'nama' => 'required',
             'nip' => 'required|unique:gurus',
             'email' => 'required|email|unique:users',
-            'is_wali_kelas' => 'nullable',
-            'wali_kelas' => 'required_if:is_wali_kelas,1'
+            'wali_kelas' => 'nullable|string' // Diubah menjadi string biasa (opsional)
         ]);
 
         // 1. Buat User Login
@@ -53,8 +52,8 @@ class GuruController extends Controller
             'password' => Hash::make('password123'),
             'role' => 'guru',
             'nip' => $request->nip,
-            'is_wali_kelas' => $request->has('is_wali_kelas') ? 1 : 0,
-            'wali_kelas' => $request->is_wali_kelas ? $request->wali_kelas : null,
+            // Cukup gunakan wali_kelas. Jika form kosong, otomatis tersimpan NULL
+            'wali_kelas' => $request->wali_kelas ?: null,
         ]);
 
         // 2. Buat Profil Guru
@@ -79,8 +78,7 @@ class GuruController extends Controller
             'nama' => 'required',
             'nip' => 'required|unique:gurus,nip,' . $guru->id,
             'email' => 'required|email|unique:users,email,' . $guru->user_id,
-            'is_wali_kelas' => 'nullable',
-            'wali_kelas' => 'required_if:is_wali_kelas,1'
+            'wali_kelas' => 'nullable|string' // Diubah menjadi string biasa (opsional)
         ]);
 
         // 1. Update Akun User
@@ -88,8 +86,8 @@ class GuruController extends Controller
             'name' => $request->nama,
             'email' => $request->email,
             'nip' => $request->nip,
-            'is_wali_kelas' => $request->has('is_wali_kelas') ? 1 : 0,
-            'wali_kelas' => $request->is_wali_kelas ? $request->wali_kelas : null,
+            // Cukup gunakan wali_kelas. Jika dikosongkan saat edit, otomatis berubah jadi NULL (kembali jadi guru biasa)
+            'wali_kelas' => $request->wali_kelas ?: null,
         ]);
 
         // 2. Update Profil Guru

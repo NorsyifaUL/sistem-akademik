@@ -36,7 +36,10 @@
                     </div>
                     <div class="flex justify-between text-[10px] font-bold">
                         <span class="text-gray-400 uppercase">Kelas</span>
-                        <span class="text-[#064e3b] font-black uppercase">Kelas {{ $siswa->kelas ?? 'Belum Diplot' }}</span>
+                        {{-- FIX: Mengakses relasi dataKelas lalu kolom nama_kelas --}}
+                        <span class="text-[#064e3b] font-black uppercase">
+                            {{ $siswa->dataKelas->nama_kelas ?? 'Belum Diplot' }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -54,14 +57,12 @@
                     @csrf
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {{-- Input Nama --}}
                         <div class="space-y-1.5">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nama Lengkap</label>
                             <input type="text" value="{{ Auth::user()->name }}" disabled
                                    class="w-full bg-gray-100 border-gray-100 rounded-xl px-4 py-2 text-xs font-bold text-gray-400 cursor-not-allowed">
                         </div>
 
-                        {{-- Input WA --}}
                         <div class="space-y-1.5">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">WA Orang Tua</label>
                             <input type="text" value="{{ $siswa->no_wa_ortu ?? '-' }}" disabled
@@ -69,14 +70,12 @@
                         </div>
                     </div>
 
-                    {{-- Input Email --}}
                     <div class="space-y-1.5">
                         <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Email Login</label>
                         <input type="email" value="{{ Auth::user()->email }}" disabled
                                class="w-full bg-gray-100 border-gray-100 rounded-xl px-4 py-2 text-xs font-bold text-gray-400 cursor-not-allowed italic">
                     </div>
 
-                    {{-- Fitur Password --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1.5">
                             <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Password Baru</label>
@@ -122,7 +121,6 @@
     </div>
 </div>
 
-{{-- Script Khusus Siswa --}}
 <script>
     function togglePass(inputId, iconId) {
         const input = document.getElementById(inputId);

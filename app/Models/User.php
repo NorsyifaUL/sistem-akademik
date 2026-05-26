@@ -15,8 +15,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
-        'is_wali_kelas', 
+        'role', 
         'wali_kelas',    
         'nip',
     ];

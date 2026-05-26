@@ -8,6 +8,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\GuruController;
 use App\Http\Controllers\SiswaController;
+use App\Http\Controllers\Guru\RaportController;
 
 // Admin Controllers
 use App\Http\Controllers\Admin\KelasController;
@@ -154,14 +155,14 @@ Route::delete('/absensi/{id}', [App\Http\Controllers\Admin\AbsensiController::cl
         });
 
         // --- 4. RAPORT, SIKAP, ESKUL ---
-        Route::get('/raport', [GuruController::class, 'indexRaport'])->name('raport.index');
-        Route::get('/raport/cetak/{id}', [GuruController::class, 'cetakRaport'])->name('raport.cetak');
+        Route::get('/raport', [RaportController::class, 'index'])->name('raport.index');
+        Route::get('/raport/cetak/{id}', [RaportController::class, 'cetak'])->name('raport.cetak');
 
+        // Untuk nilai sikap dan eskul, biarkan tetap mengarah ke GuruController
         Route::get('/nilai-sikap/input/{id}', [GuruController::class, 'inputSikap'])->name('nilai_sikap_input');
         Route::get('/nilai-eskul/input/{id}', [GuruController::class, 'inputEskul'])->name('nilai_eskul_input');
         Route::post('/nilai-sikap/store', [GuruController::class, 'storeSikap'])->name('nilai.sikap.store');
         Route::post('/nilai-eskul/store', [GuruController::class, 'storeEskul'])->name('nilai.eskul.store');
-
     });   
     
    /*

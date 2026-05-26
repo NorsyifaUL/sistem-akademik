@@ -151,14 +151,14 @@
                         <i class="fa-solid fa-file-invoice mr-2 opacity-70"></i> Rekap Nilai
                     </a>
 
-                    @if(Auth::user()->is_wali_kelas == 1)
-                        {{-- Submenu 3: Raport (Hanya muncul jika Wali Kelas) --}}
-                        <a href="{{ route('guru.raport.index') }}" 
-                           class="flex items-center px-4 py-2 text-xs rounded-lg transition-colors
-                           {{ request()->routeIs('guru.raport.*') ? 'bg-green-600 text-white font-bold' : 'text-green-200 hover:bg-green-800 hover:text-white' }}">
-                            <i class="fa-solid fa-user-graduate mr-2 opacity-70"></i> Sikap & Eskul (Raport)
-                        </a>
-                    @endif
+                   @if(!empty(Auth::user()->wali_kelas))
+                    {{-- Submenu 3: Raport (Hanya muncul jika Wali Kelas) --}}
+                    <a href="{{ route('guru.raport.index') }}" 
+                    class="flex items-center px-4 py-2 text-xs rounded-lg transition-colors
+                    {{ request()->routeIs('guru.raport.*') ? 'bg-green-600 text-white font-bold' : 'text-green-200 hover:bg-green-800 hover:text-white' }}">
+                        <i class="fa-solid fa-user-graduate mr-2 opacity-70"></i> Sikap & Eskul (Raport)
+                    </a>
+                @endif
                 </div>
             </div>
 

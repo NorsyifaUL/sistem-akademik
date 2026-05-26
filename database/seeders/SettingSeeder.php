@@ -12,15 +12,15 @@ class SettingSeeder extends Seeder
     public function run(): void
     {
         \App\Models\Setting::updateOrCreate(
-        ['id' => 1], // Pastikan hanya ada 1 baris data dengan ID 1
-        [
-            'tahun_ajaran' => '2024/2025',
-            'semester' => '1',
-            'tgl_raport' => '2026-06-20',
-            'nama_kepsek' => 'KASMUDIN, M.Pd.',
-            'nip_kepsek' => '197810232006041007',
-            'is_wali_kelas' => false,
-        ]
-    );
+            ['id' => 1], // Pastikan hanya ada 1 baris data dengan ID 1
+            [
+                'tahun_ajaran' => '2024/2025',
+                'semester' => '1',
+                'tgl_raport' => '2026-06-20',
+                'nama_kepsek' => 'KASMUDIN, M.Pd.',
+                'nip_kepsek' => '197810232006041007',
+                // Baris is_wali_kelas yang salah alamat sudah dihapus murni
+            ]
+        );
     }
 }

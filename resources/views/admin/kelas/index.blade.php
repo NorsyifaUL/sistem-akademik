@@ -47,7 +47,8 @@
                         </td>
                         
                         <td class="px-6 py-4">
-                            @if($item->guru && $item->guru->user && $item->guru->user->is_wali_kelas == 1)
+                            {{-- SINKRONISASI BARU: Memeriksa apakah kolom string wali_kelas milik user guru ada isinya --}}
+                            @if($item->guru && $item->guru->user && !empty($item->guru->user->wali_kelas))
                                 <div class="flex flex-col">
                                     <span class="text-[10px] font-black text-slate-700 uppercase tracking-tight">{{ $item->guru->nama }}</span>
                                     <span class="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 italic">NIP. {{ $item->guru->nip ?? '-' }}</span>
@@ -78,7 +79,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr>
+                    <tr class="hover:bg-transparent">
                         <td colspan="4" class="py-20 text-center">
                             <div class="flex flex-col items-center opacity-20">
                                 <i class="fa-solid fa-layer-group text-4xl mb-4 text-slate-400"></i>
