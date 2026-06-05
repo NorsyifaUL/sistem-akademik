@@ -43,7 +43,7 @@
                 <div class="relative">
                     <select name="kelas_id" class="w-full md:w-44 pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-[10px] font-black outline-none focus:ring-2 focus:ring-blue-500/10 appearance-none text-slate-600 cursor-pointer uppercase tracking-widest">
                         <option value="">-- SEMUA KELAS --</option>
-                        @foreach($kelasList as $kls)
+                        @foreach($semuaKelas as $kls)
                             <option value="{{ $kls->id }}" {{ request('kelas_id') == $kls->id ? 'selected' : '' }}>
                                 KELAS {{ $kls->nama_kelas }}
                             </option>
@@ -119,12 +119,10 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex justify-center gap-1">
-                                {{-- Edit --}}
                                 <a href="{{ route('admin.siswa.edit', $item->id) }}" 
                                    class="w-8 h-8 flex items-center justify-center bg-amber-50 text-amber-500 hover:bg-amber-500 hover:text-white rounded-lg transition-all border border-amber-100" title="Edit Data">
                                     <i class="fa-solid fa-pen-to-square text-[10px]"></i>
                                 </a>
-                                {{-- Reset Password --}}
                                 <form action="{{ route('admin.siswa.reset-password', $item->id) }}" method="POST" class="inline">
                                     @csrf
                                     <button class="w-8 h-8 flex items-center justify-center bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-all border border-blue-100" 
@@ -132,7 +130,6 @@
                                         <i class="fa-solid fa-key text-[10px]"></i>
                                     </button>
                                 </form>
-                                {{-- Hapus --}}
                                 <form action="{{ route('admin.siswa.destroy', $item->id) }}" method="POST" class="inline">
                                     @csrf @method('DELETE')
                                     <button class="w-8 h-8 flex items-center justify-center bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all border border-rose-100" 

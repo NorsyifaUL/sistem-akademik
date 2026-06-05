@@ -39,7 +39,6 @@
 
         {{-- Sisi Kanan: Form --}}
         <div class="lg:col-span-2 bg-white rounded-2xl border-t-4 border-t-blue-600 border-x border-b border-slate-100 shadow-sm overflow-hidden">
-            {{-- Menggunakan url() langsung untuk memastikan rute yang benar --}}
             <form action="{{ url('/admin/profil/update') }}" method="POST" class="p-8 space-y-6">
                 @csrf
                 
@@ -76,8 +75,13 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end pt-2">
-                    <button type="submit" class="bg-blue-600 text-white font-bold text-xs uppercase px-8 py-3 rounded-xl shadow-md hover:bg-blue-700 transition-all active:scale-95">
+                {{-- Action Buttons --}}
+                <div class="flex flex-col md:flex-row justify-end items-center gap-3 pt-2">
+                    <a href="{{ route('admin.dashboard') }}" 
+                       class="w-full md:w-auto px-8 py-3 rounded-lg text-[10px] font-black text-white bg-rose-600 hover:bg-rose-700 transition-all uppercase tracking-widest text-center shadow-sm shadow-rose-100 active:scale-95">
+                        Batal
+                    </a>
+                    <button type="submit" class="w-full md:w-auto bg-blue-600 text-white font-black text-[10px] uppercase px-8 py-3 rounded-lg shadow-md hover:bg-blue-700 transition-all active:scale-95">
                         Simpan Perubahan
                     </button>
                 </div>

@@ -16,7 +16,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role', 
-        'wali_kelas',    
+        'wali_kelas',     
         'nip',
     ];
 
@@ -42,9 +42,9 @@ class User extends Authenticatable
         return $this->hasOne(Guru::class, 'user_id');
     }
 
-    // Relasi ke Siswa - SUDAH BENAR
+    // Relasi ke Siswa
     public function siswa()
     {
-        return $this->hasOne(Siswa::class, 'user_id', 'id');
+        return $this->hasOne(Siswa::class, 'user_id');
     }
 }

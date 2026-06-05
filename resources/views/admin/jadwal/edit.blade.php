@@ -94,10 +94,10 @@
             </div>
 
             {{-- Action Buttons --}}
-            <div class="pt-6 flex justify-between items-center border-t border-slate-50 mt-4">
+            <div class="mt-10 pt-6 flex flex-col md:flex-row justify-end items-center gap-3 border-t border-slate-50">
                 <a href="{{ route('admin.jadwal.index') }}" 
-                   class="px-6 py-2 rounded-lg text-[9px] font-black text-white bg-rose-500 hover:bg-rose-600 transition-all uppercase tracking-widest flex items-center gap-2">
-                    <i class="fa-solid fa-xmark text-[8px]"></i> Batal
+                   class="w-full md:w-auto px-8 py-2 rounded-lg text-[9px] font-black text-white bg-rose-600 hover:bg-rose-700 transition-all uppercase tracking-widest text-center shadow-sm shadow-rose-100 active:scale-95">
+                    Batal
                 </a>
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-black py-2 px-10 rounded-lg shadow-sm transition-all active:scale-95 uppercase text-[9px] tracking-widest flex items-center gap-2">
                     <i class="fa-solid fa-rotate text-[8px]"></i> Update Jadwal

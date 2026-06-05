@@ -136,20 +136,34 @@ class AdminController extends Controller
     /**
      * Manajemen Nilai & Raport
      */
-    public function indexNilai(Request $request)
-    {
-        $datakelas = Kelas::all();
-        $query = Siswa::with('nilais');
+public function indexNilai(Request $request)
+{
+    $datakelas = Kelas::all();
+    
+    // 1. Ambil data tahun ajaran dan semester unik dari database
+    // Kita gabungkan agar tampilannya rapi seperti yang kamu inginkan
+    $tahunAjaran = Nilai::select('tahun_ajaran', 'semester')
+                        ->distinct()
+                        ->orderBy('tahun_ajaran', 'desc')
+                        ->get()
+                        ->map(function ($item) {
+                            $semText = ($item->semester == 1) ? 'I (Ganjil)' : 'II (Genap)';
+                            return [
+                                'value' => $item->tahun_ajaran . ' - ' . $item->semester,
+                                'label' => $item->tahun_ajaran . ' - ' . $semText
+                            ];
+                        });
 
-        if ($request->filled('kelas_id')) {
-            $query->where('kelas_id', $request->kelas_id);
-        }
+    $query = Siswa::with('nilais');
 
-        $siswas = $query->orderBy('nama', 'asc')->get();
-        $tahunAjaran = ['2025/2026 - I (Satu)'];
-
-        return view('admin.nilai', compact('siswas', 'datakelas', 'tahunAjaran'));
+    if ($request->filled('kelas_id')) {
+        $query->where('kelas_id', $request->kelas_id);
     }
+
+    $siswas = $query->orderBy('nama', 'asc')->get();
+
+    return view('admin.nilai', compact('siswas', 'datakelas', 'tahunAjaran'));
+}
 
 public function cetakRaport(int $id)
 {

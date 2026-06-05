@@ -27,7 +27,7 @@
         </div>
 
         <div class="p-6 md:p-8">
-            {{-- BAGIAN PESAN ERROR (Sangat Penting untuk Debugging) --}}
+            {{-- BAGIAN PESAN ERROR --}}
             @if ($errors->any())
                 <div class="mb-6 p-4 bg-rose-50 border-l-4 border-rose-500 rounded-r-xl shadow-sm">
                     <div class="flex items-center mb-2">
@@ -71,9 +71,10 @@
                     <div class="group">
                         <label class="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5 group-focus-within:text-blue-600 transition-colors text-left">Kelas</label>
                         <div class="relative">
+                            {{-- Variabel diubah menjadi $semuaKelas --}}
                             <select name="kelas_id" class="w-full px-4 py-2 rounded-lg border border-slate-200 bg-slate-50/30 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 text-xs font-black transition-all outline-none appearance-none cursor-pointer uppercase tracking-wider" required>
                                 <option value="" disabled selected>-- PILIH KELAS --</option>
-                                @foreach($kelasList as $kls)
+                                @foreach($semuaKelas as $kls)
                                     <option value="{{ $kls->id }}" {{ old('kelas_id') == $kls->id ? 'selected' : '' }}>
                                         KELAS {{ $kls->nama_kelas }}
                                     </option>
@@ -114,7 +115,7 @@
                 {{-- Action Buttons --}}
                 <div class="mt-6 pt-4 flex flex-col md:flex-row justify-end items-center gap-3 border-t border-slate-50">
                     <a href="{{ route('admin.siswa.index') }}" 
-                       class="w-full md:w-auto px-8 py-2 rounded-lg text-[9px] font-black text-rose-500 bg-rose-50 border border-rose-100 hover:bg-rose-500 hover:text-white transition-all uppercase tracking-widest text-center">
+                       class="w-full md:w-auto px-8 py-2 rounded-lg text-[9px] font-black text-white bg-rose-600 hover:bg-rose-700 transition-all uppercase tracking-widest text-center shadow-sm shadow-rose-100 active:scale-95">
                         Batal
                     </a>
                     <button type="submit" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-black py-2 px-10 rounded-lg shadow-sm transition-all active:scale-95 uppercase tracking-widest text-[9px]">

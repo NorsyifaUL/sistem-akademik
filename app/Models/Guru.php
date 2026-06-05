@@ -15,17 +15,27 @@ class Guru extends Model
         'nip',
     ];
 
-    // --- TAMBAHKAN INI AGAR OTOMATIS SINKRON ---
+    /**
+     * Booted method untuk sinkronisasi otomatis ke tabel users
+     */
     protected static function booted()
     {
-        // Setiap kali data Guru di-update...
-        static::updated(function ($guru) {
+        // Sinkronisasi saat data Guru dibuat atau diupdate
+        static::saved(function ($guru) {
             if ($guru->user) {
-                // ...update juga NIP di tabel users
                 $guru->user->update([
-                    'nip' => $guru->nip,
+                    'nip'  => $guru->nip,
                     'name' => $guru->nama
                 ]);
+            }
+        });
+
+        // Sinkronisasi saat data Guru dihapus
+        static::deleted(function ($guru) {
+            if ($guru->user) {
+                // Opsional: Jika Anda ingin menghapus user sekalian saat guru dihapus, 
+                // atau cukup kosongkan NIP di tabel user saja.
+                $guru->user->update(['nip' => null]);
             }
         });
     }

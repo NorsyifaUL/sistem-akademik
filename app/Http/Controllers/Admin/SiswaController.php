@@ -15,6 +15,7 @@ class SiswaController extends Controller
 {
     public function index(Request $request)
     {
+        $semuaKelas = Kelas::orderBy('nama_kelas', 'asc')->get();
         $query = Siswa::with(['user', 'dataKelas']);
 
         if ($request->filled('search')) {
@@ -28,16 +29,17 @@ class SiswaController extends Controller
             $query->where('kelas_id', $request->kelas_id);
         }
 
-        $siswa = $query->latest()->paginate(10)->appends($request->all());
-        $kelasList = Kelas::orderBy('nama_kelas', 'asc')->get();
+        $siswa = $query->latest()->paginate(10);
+        // Tetap gunakan appends untuk membawa parameter filter di URL
+        $siswa->appends($request->all());
 
-        return view('admin.siswa.index', compact('siswa', 'kelasList'));
+        return view('admin.siswa.index', compact('siswa', 'semuaKelas'));
     }
 
     public function create()
     {
-        $kelasList = Kelas::orderBy('nama_kelas', 'asc')->get();
-        return view('admin.siswa.create', compact('kelasList'));
+        $semuaKelas = Kelas::orderBy('nama_kelas', 'asc')->get();
+        return view('admin.siswa.create', compact('semuaKelas'));
     }
 
     public function store(Request $request)
@@ -53,7 +55,6 @@ class SiswaController extends Controller
         try {
             DB::beginTransaction();
 
-            // 1. Buat Akun User
             $user = User::create([
                 'name'     => $request->nama,
                 'email'    => $request->email,
@@ -61,8 +62,7 @@ class SiswaController extends Controller
                 'role'     => 'siswa'
             ]);
 
-            // 2. Buat Profil Siswa
-            $siswa = Siswa::create([
+            Siswa::create([
                 'user_id'    => $user->id,
                 'nama'       => $request->nama,
                 'nisn'       => $request->nisn,
@@ -72,21 +72,17 @@ class SiswaController extends Controller
 
             DB::commit();
             return redirect()->route('admin.siswa.index')->with('success', 'Siswa berhasil ditambahkan.');
-
         } catch (\Exception $e) {
             DB::rollBack();
-            // Log error agar bisa dicek di storage/logs/laravel.log
             Log::error("Gagal Simpan Siswa: " . $e->getMessage());
-            
-            // Kembalikan ke halaman sebelumnya dengan pesan error asli
-            return back()->withInput()->with('error', 'Gagal menyimpan data: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Terjadi kesalahan sistem.');
         }
     }
 
     public function edit(Siswa $siswa)
     {
-        $kelasList = Kelas::orderBy('nama_kelas', 'asc')->get();
-        return view('admin.siswa.edit', compact('siswa', 'kelasList'));
+        $semuaKelas = Kelas::orderBy('nama_kelas', 'asc')->get();
+        return view('admin.siswa.edit', compact('siswa', 'semuaKelas'));
     }
 
     public function update(Request $request, Siswa $siswa)
@@ -107,20 +103,14 @@ class SiswaController extends Controller
                 'email' => $request->email
             ]);
 
-            $siswa->update([
-                'nama'       => $request->nama,
-                'nisn'       => $request->nisn,
-                'kelas_id'   => $request->kelas_id,
-                'no_wa_ortu' => $request->no_wa_ortu
-            ]);
+            $siswa->update($request->only(['nama', 'nisn', 'kelas_id', 'no_wa_ortu']));
 
             DB::commit();
             return redirect()->route('admin.siswa.index')->with('success', 'Data siswa berhasil diperbarui');
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Gagal Update Siswa: " . $e->getMessage());
-            return back()->withInput()->with('error', 'Gagal memperbarui data: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Gagal memperbarui data.');
         }
     }
 
@@ -128,22 +118,18 @@ class SiswaController extends Controller
     {
         try {
             DB::beginTransaction();
-            
-            // Simpan referensi user_id sebelum data dihapus
-            $userId = $siswa->user_id;
-            
-            // Hapus data siswa terlebih dahulu
+            // Ambil user sebelum siswa dihapus
+            $user = $siswa->user;
             $siswa->delete();
+            // Hapus user jika ada
+            if ($user) { $user->delete(); }
             
-            // Hapus data user
-            User::where('id', $userId)->delete();
-
             DB::commit();
             return redirect()->route('admin.siswa.index')->with('success', 'Siswa berhasil dihapus');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error("Gagal Hapus Siswa: " . $e->getMessage());
-            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data.');
         }
     }
 
@@ -151,13 +137,10 @@ class SiswaController extends Controller
     {
         try {
             $siswa = Siswa::findOrFail($id);
-            $siswa->user->update([
-                'password' => Hash::make('password123')
-            ]);
-
+            $siswa->user->update(['password' => Hash::make('password123')]);
             return back()->with('success', 'Password berhasil direset ke: password123');
         } catch (\Exception $e) {
-            return back()->with('error', 'Gagal reset password: ' . $e->getMessage());
+            return back()->with('error', 'Gagal mereset password.');
         }
     }
 }

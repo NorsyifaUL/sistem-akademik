@@ -2,22 +2,22 @@
 
 @section('content')
 <div class="space-y-5 animate-fade-in pb-8">
-    {{-- Header & Filter Section - Dipersempit gap-nya --}}
+    {{-- Header & Filter Section --}}
     <div class="flex flex-col md:flex-row md:items-end justify-between border-b border-gray-100 pb-4 gap-3">
         <div>
             <h2 class="text-2xl font-black text-gray-800 tracking-tight uppercase">Riwayat Presensi</h2>
             <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Laporan Kehadiran Mandiri</p>
         </div>
 
-        {{-- Form Filter --}}
-        <form action="{{ route('siswa.absensi') }}" method="GET" class="flex flex-wrap items-center gap-2">
+        {{-- Form Filter yang telah disesuaikan agar rapi dan proporsional --}}
+        <form action="{{ route('siswa.absensi') }}" method="GET" class="flex flex-wrap items-end gap-2">
             @php
                 $namaBulan = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
             @endphp
             
             <div class="flex flex-col">
                 <label class="text-[8px] font-black text-gray-400 uppercase mb-0.5 ml-1">Pilih Bulan</label>
-                <select name="bulan" class="text-[11px] font-bold border-gray-100 rounded-xl bg-white shadow-sm py-1.5 min-w-[130px] focus:ring-emerald-500">
+                <select name="bulan" class="text-[11px] font-bold border-gray-100 rounded-xl bg-white shadow-sm py-2.5 px-3 min-w-[130px] focus:ring-emerald-500">
                     <option value="">Semua Bulan</option>
                     @foreach($namaBulan as $key => $bulan)
                         <option value="{{ $key }}" {{ request('bulan') == $key ? 'selected' : '' }}>{{ $bulan }}</option>
@@ -27,7 +27,7 @@
 
             <div class="flex flex-col">
                 <label class="text-[8px] font-black text-gray-400 uppercase mb-0.5 ml-1">Status</label>
-                <select name="status" class="text-[11px] font-bold border-gray-100 rounded-xl bg-white shadow-sm py-1.5 min-w-[110px] focus:ring-emerald-500">
+                <select name="status" class="text-[11px] font-bold border-gray-100 rounded-xl bg-white shadow-sm py-2.5 px-3 min-w-[110px] focus:ring-emerald-500">
                     <option value="">Semua</option>
                     @foreach(['Hadir', 'Sakit', 'Izin', 'Alpa'] as $st)
                         <option value="{{ $st }}" {{ request('status') == $st ? 'selected' : '' }}>{{ $st }}</option>
@@ -35,12 +35,14 @@
                 </select>
             </div>
 
-            <div class="flex items-end gap-2 pt-3">
-                <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-600 transition-all shadow-sm">
-                    <i class="fa-solid fa-magnifying-glass mr-1"></i> Cari
+            <div class="flex items-center gap-2">
+                <button type="submit" class="bg-gray-900 text-white px-5 py-[9px] rounded-xl text-[10px] font-black uppercase hover:bg-emerald-600 transition-all shadow-sm flex items-center">
+                    <i class="fa-solid fa-magnifying-glass mr-1.5"></i> Cari
                 </button>
                 @if(request()->filled('bulan') || request()->filled('status'))
-                    <a href="{{ route('siswa.absensi') }}" class="bg-rose-50 text-rose-500 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-rose-100 flex items-center">Reset</a>
+                    <a href="{{ route('siswa.absensi') }}" class="bg-rose-50 text-rose-500 px-4 py-[9px] rounded-xl text-[10px] font-black uppercase border border-rose-100 flex items-center">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
                 @endif
             </div>
         </form>

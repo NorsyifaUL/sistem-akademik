@@ -1,7 +1,8 @@
 @extends('layouts.siswa')
 
 @section('content')
-<div class="max-w-4xl text-left animate-fade-in p-6">
+{{-- Diubah menjadi max-w-7xl agar lebih lebar dan berada di tengah --}}
+<div class="max-w-7xl mx-auto text-left animate-fade-in p-6">
     {{-- Header --}}
     <div class="mb-6">
         <h2 class="text-2xl font-black text-gray-800 tracking-tight uppercase">Profil Siswa</h2>
@@ -17,7 +18,8 @@
         </div>
     @endif
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {{-- Grid diubah ke md:grid-cols-4 untuk ruang lebih luas --}}
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         {{-- Sidebar Profil Siswa --}}
         <div class="md:col-span-1 space-y-6">
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 text-center">
@@ -36,7 +38,6 @@
                     </div>
                     <div class="flex justify-between text-[10px] font-bold">
                         <span class="text-gray-400 uppercase">Kelas</span>
-                        {{-- FIX: Mengakses relasi dataKelas lalu kolom nama_kelas --}}
                         <span class="text-[#064e3b] font-black uppercase">
                             {{ $siswa->dataKelas->nama_kelas ?? 'Belum Diplot' }}
                         </span>
@@ -45,8 +46,8 @@
             </div>
         </div>
 
-        {{-- Form Update Siswa --}}
-        <div class="md:col-span-2 space-y-6">
+        {{-- Form Update Siswa - Mengambil 3 kolom dari 4 --}}
+        <div class="md:col-span-3 space-y-6">
             <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden border-t-4 border-t-[#064e3b]">
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
                     <h4 class="text-xs font-black text-gray-500 uppercase tracking-widest">Informasi Akun</h4>
@@ -110,10 +111,15 @@
 
                     <div class="pt-4 flex items-center justify-between gap-4">
                         <p class="text-[9px] text-gray-400 italic max-w-[200px]">Ubah password secara berkala untuk menjaga keamanan akun Anda.</p>
-                        <button type="submit" class="bg-[#064e3b] hover:bg-[#053f30] text-white px-8 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-[#064e3b]/10 transition-all flex items-center gap-2">
-                            <i class="fa-solid fa-shield-halved"></i>
-                            Simpan Perubahan
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('siswa.dashboard') }}" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
+                                Batal
+                            </a>
+                            <button type="submit" class="bg-[#064e3b] hover:bg-[#053f30] text-white px-8 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-[#064e3b]/10 transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                Simpan Perubahan
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
