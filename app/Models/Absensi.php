@@ -37,7 +37,7 @@ class Absensi extends Model
     // Relasi ke jadwal
     public function jadwal()
     {
-        return $this->belongsTo(Jadwal::class);
+        return $this->belongsTo(Jadwal::class, 'jadwal_id');
     }
 
     // Relasi ke notifikasi

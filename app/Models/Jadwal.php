@@ -94,4 +94,9 @@ class Jadwal extends Model
     {
         return $this->hasMany(Nilai::class, 'jadwal_id');
     }
+    
+    public function mataPelajaran()
+    {
+        return $this->belongsTo(Mapel::class, 'mapel_id'); // Sesuaikan nama kolom foreign key-nya
+    }
 }

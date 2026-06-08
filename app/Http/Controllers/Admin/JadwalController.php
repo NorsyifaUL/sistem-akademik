@@ -16,12 +16,12 @@ class JadwalController extends Controller
     // =========================
     public function index(Request $request)
     {
-        // Menggunakan 'kelasRelation' sesuai dengan nama fungsi di model Jadwal
-        $query = Jadwal::with(['guru', 'mapel', 'kelasRelation']);
+        // Sesuaikan with(), hapus 'kelasRelation' jika di model Jadwal belum ada relasi tersebut
+        $query = Jadwal::with(['guru', 'mapel']);
 
-        // Filter berdasarkan kelas_id (untuk relasi tabel kelas)
-        if ($request->filled('kelas_id')) {
-            $query->where('kelas_id', $request->kelas_id);
+        // Filter berdasarkan kolom 'kelas' (bukan 'kelas_id')
+        if ($request->filled('kelas')) {
+            $query->where('kelas', $request->kelas);
         }
 
         // Filter berdasarkan hari
@@ -30,8 +30,6 @@ class JadwalController extends Controller
         }
 
         $jadwal = $query->paginate(10);
-        
-        // Ambil semua data kelas untuk isi dropdown filter
         $data_kelas = Kelas::all(); 
 
         return view('admin.jadwal.index', compact('jadwal', 'data_kelas'));
@@ -44,7 +42,7 @@ class JadwalController extends Controller
     {
         $gurus = Guru::all();
         $mapels = Mapel::all();
-        $data_kelas = Kelas::all(); // Menambahkan data kelas untuk pilihan di form
+        $data_kelas = Kelas::all();
 
         return view('admin.jadwal.create', compact('gurus', 'mapels', 'data_kelas'));
     }
@@ -55,25 +53,21 @@ class JadwalController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'guru_id'    => 'required',
-            'mapel_id'   => 'required',
-            'kelas_id'   => 'nullable', // Menangani id relasi
-            'kelas'      => 'required', // Menangani string nama kelas
-            'hari'       => 'required',
-            'jam_mulai'  => 'required',
+            'guru_id'     => 'required',
+            'mapel_id'    => 'required',
+            'kelas'       => 'required', // Kolom ini yang ada di database
+            'hari'        => 'required',
+            'jam_mulai'   => 'required',
             'jam_selesai' => 'required',
-            'ruangan'    => 'nullable'
         ]);
 
         Jadwal::create([
             'guru_id'     => $request->guru_id,
             'mapel_id'    => $request->mapel_id,
-            'kelas_id'    => $request->kelas_id, 
             'kelas'       => $request->kelas,
             'hari'        => $request->hari,
             'jam_mulai'   => $request->jam_mulai,
             'jam_selesai' => $request->jam_selesai,
-            'ruangan'     => $request->ruangan
         ]);
 
         return redirect()->route('admin.jadwal.index')
@@ -87,7 +81,7 @@ class JadwalController extends Controller
     {
         $gurus = Guru::all();
         $mapels = Mapel::all();
-        $data_kelas = Kelas::all(); // Menambahkan data kelas untuk pilihan di form
+        $data_kelas = Kelas::all();
 
         return view('admin.jadwal.edit', compact('jadwal', 'gurus', 'mapels', 'data_kelas'));
     }
@@ -98,20 +92,18 @@ class JadwalController extends Controller
     public function update(Request $request, Jadwal $jadwal)
     {
         $request->validate([
-            'guru_id'    => 'required',
-            'mapel_id'   => 'required',
-            'kelas_id'   => 'nullable',
-            'kelas'      => 'required',
-            'hari'       => 'required',
-            'jam_mulai'  => 'required',
+            'guru_id'     => 'required',
+            'mapel_id'    => 'required',
+            'kelas'       => 'required',
+            'hari'        => 'required',
+            'jam_mulai'   => 'required',
             'jam_selesai' => 'required',
-            'ruangan'    => 'nullable'
+            'ruangan'     => 'nullable'
         ]);
 
         $jadwal->update([
             'guru_id'     => $request->guru_id,
             'mapel_id'    => $request->mapel_id,
-            'kelas_id'    => $request->kelas_id,
             'kelas'       => $request->kelas,
             'hari'        => $request->hari,
             'jam_mulai'   => $request->jam_mulai,
