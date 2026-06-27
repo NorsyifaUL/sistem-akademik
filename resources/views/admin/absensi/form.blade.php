@@ -1,18 +1,30 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="p-6">
-    <h2 class="text-2xl font-bold mb-6 text-gray-800">Form Absensi Siswa</h2>
-
-    <div class="bg-white shadow-sm rounded-xl p-6 mb-6 border-l-4 border-green-600">
-        <h5 class="text-lg font-bold text-gray-800">
-            Mata Pelajaran : {{ $jadwal->mapel->nama_mapel ?? $jadwal->mapel->nama }}
-        </h5>
-        <p class="text-sm text-gray-600 mt-1">
-            <span class="font-semibold text-green-700">Guru:</span> {{ $jadwal->guru->nama }} 
-            <span class="mx-2 text-gray-300">|</span> 
-            <span class="font-semibold text-green-700">Kelas:</span> {{ $jadwal->kelas }}
+<div class="p-4 space-y-6 animate-fade-in">
+    {{-- Header --}}
+    <div class="px-1">
+        <h1 class="text-lg font-black text-slate-800 tracking-tight uppercase leading-none">
+            Form <span class="text-green-600">Absensi</span>
+        </h1>
+        <p class="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5">
+            SIAKAD SMAN 1 JEJANGKIT
         </p>
+    </div>
+
+    {{-- Info Card --}}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex items-center">
+        <div class="w-1.5 h-full bg-green-600 self-stretch"></div>
+        <div class="p-4">
+            <h2 class="text-[11px] font-black text-slate-700 uppercase tracking-widest">
+                {{ $jadwal->mapel->nama_mapel ?? $jadwal->mapel->nama }}
+            </h2>
+            <div class="flex items-center gap-3 mt-1">
+                <span class="text-[9px] font-bold text-green-700 uppercase bg-green-50 px-2 py-0.5 rounded">{{ $jadwal->guru->nama }}</span>
+                <span class="text-slate-300">|</span>
+                <span class="text-[9px] font-bold text-slate-500 uppercase">{{ $jadwal->kelas }}</span>
+            </div>
+        </div>
     </div>
 
     @php
@@ -23,77 +35,71 @@
         @csrf
         <input type="hidden" name="jadwal_id" value="{{ $jadwal->id }}">
 
-        <div class="bg-white shadow rounded-xl overflow-hidden border border-gray-100">
-            <div class="p-4 border-b bg-gray-50 flex items-center justify-between">
+        <div class="bg-white shadow-sm rounded-xl border border-slate-200 overflow-hidden">
+            {{-- Toolbar --}}
+            <div class="p-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <label class="text-sm font-bold text-gray-700">Tanggal Presensi:</label>
-                    <input
-                        type="date"
-                        name="tanggal"
-                        value="{{ date('Y-m-d') }}"
-                        class="border rounded-lg px-3 py-2 w-48 focus:ring-2 focus:ring-green-500 focus:outline-none shadow-sm"
-                        required
-                    >
+                    <label class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Tanggal</label>
+                    <input type="date" name="tanggal" value="{{ date('Y-m-d') }}"
+                        class="border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-bold text-slate-700 focus:ring-2 focus:ring-green-500 focus:outline-none w-32"
+                        required>
                 </div>
-                <span class="text-xs text-gray-500 italic">* Default hari ini</span>
             </div>
 
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-800 text-white uppercase text-[11px] tracking-wider">
-                    <tr>
-                        <th class="px-6 py-4 text-left w-12">No</th>
-                        <th class="px-6 py-4 text-left">Nama Siswa</th>
-                        <th class="px-6 py-4 text-center w-52">Status Kehadiran</th>
-                        <th class="px-6 py-4 text-left">Keterangan</th>
-                    </tr>
-                </thead>
-
-                <tbody class="divide-y divide-gray-100">
-                @foreach($siswas as $index => $siswa)
-                <tr class="hover:bg-green-50/50 transition-colors">
-                    <td class="px-6 py-4 text-gray-500 font-medium">{{ $index + 1 }}</td>
-                    <td class="px-6 py-4">
-                        <span class="font-bold text-gray-800">{{ $siswa->nama }}</span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <select
-                            name="status[{{ $siswa->id }}]"
-                            class="border rounded-lg px-3 py-1.5 w-full focus:ring-2 focus:ring-green-500 outline-none text-sm font-semibold"
-                            required
-                        >
-                            <option value="H" class="text-green-600 font-bold">Hadir</option>
-                            <option value="S" class="text-yellow-600 font-bold">Sakit</option>
-                            <option value="I" class="text-blue-600 font-bold">Izin</option>
-                            <option value="A" class="text-red-600 font-bold">Alpa</option>
-                        </select>
-                    </td>
-                    <td class="px-6 py-4">
-                        <input
-                            type="text"
-                            name="keterangan[{{ $siswa->id }}]"
-                            class="border border-gray-200 bg-gray-50 rounded-lg px-3 py-1.5 w-full text-xs focus:bg-white transition-all"
-                            placeholder="Opsional (cth: Demam)"
-                        >
-                    </td>
-                </tr>
-                @endforeach
-                </tbody>
-            </table>
+            {{-- Table --}}
+            <div class="overflow-x-auto">
+                <table class="w-full text-[11px]">
+                    <thead class="bg-slate-800 text-white uppercase tracking-widest">
+                        <tr>
+                            <th class="px-6 py-3 text-left w-12">No</th>
+                            <th class="px-6 py-3 text-left">Nama Siswa</th>
+                            <th class="px-6 py-3 text-center w-40">Kehadiran</th>
+                            <th class="px-6 py-3 text-left w-64">Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($siswas as $index => $siswa)
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="px-6 py-3 text-slate-400 font-bold">{{ $index + 1 }}</td>
+                            <td class="px-6 py-3 font-bold text-slate-700">{{ $siswa->nama }}</td>
+                            <td class="px-6 py-3">
+                                <select name="status[{{ $siswa->id }}]"
+                                    class="border border-slate-200 rounded-lg px-3 py-1.5 w-full focus:ring-2 focus:ring-green-500 outline-none font-black text-[10px] uppercase"
+                                    required>
+                                    <option value="H" class="text-green-600">Hadir</option>
+                                    <option value="S" class="text-amber-600">Sakit</option>
+                                    <option value="I" class="text-blue-600">Izin</option>
+                                    <option value="A" class="text-rose-600">Alpa</option>
+                                </select>
+                            </td>
+                            <td class="px-6 py-3">
+                                <input type="text" name="keterangan[{{ $siswa->id }}]"
+                                    class="border border-slate-200 rounded-lg px-3 py-1.5 w-full text-[10px] focus:border-green-500 outline-none transition-all"
+                                    placeholder="Opsional...">
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="mt-6 flex items-center gap-3">
-            <button type="submit" class="bg-green-700 hover:bg-green-800 text-white px-8 py-2.5 rounded-xl shadow-lg shadow-green-900/20 font-bold transition-all flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                </svg>
+        {{-- Footer Actions --}}
+        <div class="mt-6 flex items-center gap-2">
+            <button type="submit" 
+                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-sm transition-all active:scale-95">
                 Simpan Presensi
             </button>
-
             <a href="{{ Auth::user()->role == 'guru' ? route('guru.jadwal') : route('admin.jadwal.index') }}"
-               class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-xl font-bold transition-all">
+               class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-6 py-2.5 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all">
                Batal
             </a>
         </div>
     </form>
 </div>
+
+<style>
+    .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
 @endsection

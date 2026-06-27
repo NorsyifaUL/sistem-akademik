@@ -38,8 +38,8 @@ class SiswaController extends Controller
 
     public function create()
     {
-        $semuaKelas = Kelas::orderBy('nama_kelas', 'asc')->get();
-        return view('admin.siswa.create', compact('semuaKelas'));
+        $kelasList = Kelas::orderBy('nama_kelas', 'asc')->get();
+        return view('admin.siswa.create', compact('kelasList'));
     }
 
     public function store(Request $request)
@@ -81,8 +81,11 @@ class SiswaController extends Controller
 
     public function edit(Siswa $siswa)
     {
-        $semuaKelas = Kelas::orderBy('nama_kelas', 'asc')->get();
-        return view('admin.siswa.edit', compact('siswa', 'semuaKelas'));
+        // Ubah $semuaKelas menjadi $kelasList
+        $kelasList = Kelas::orderBy('nama_kelas', 'asc')->get();
+        
+        // Kirim dengan nama variabel yang baru
+        return view('admin.siswa.edit', compact('siswa', 'kelasList'));
     }
 
     public function update(Request $request, Siswa $siswa)

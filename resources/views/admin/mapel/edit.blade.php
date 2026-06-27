@@ -1,24 +1,24 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="p-4 space-y-4 animate-fade-in">
-    {{-- Header Ramping & Luas --}}
-    <div class="flex items-end justify-between px-1">
-        <div>
-            <h2 class="text-base font-black text-slate-800 tracking-tight uppercase leading-none">Edit <span class="text-blue-600">Mata Pelajaran</span></h2>
-            <p class="text-[8px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-1">
-                MEMPERBARUI DATA: <span class="text-blue-600">{{ $mapel->nama_mapel }}</span>
-            </p>
-        </div>
+<div class="p-4 space-y-6 animate-fade-in">
+    {{-- Header --}}
+    <div class="px-1">
+        <h1 class="text-xl font-black text-slate-800 tracking-tight uppercase leading-none">
+            Edit <span class="text-blue-600">Mata Pelajaran</span>
+        </h1>
+        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1.5">
+            Pembaruan Data: <span class="text-slate-600 font-black">{{ $mapel->nama_mapel }}</span>
+        </p>
     </div>
 
-    {{-- Form Card - Lebar Maksimal --}}
-    <div class="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="h-[3px] bg-blue-600 w-full"></div>
+    {{-- Form Card --}}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="h-[4px] bg-blue-600 w-full"></div>
         
         <div class="p-4 border-b border-slate-50 bg-slate-50/30">
-            <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <i class="fa-solid fa-pen-to-square text-blue-600"></i> Update Informasi Subjek
+            <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square text-blue-600"></i> Formulir Perubahan Data
             </h3>
         </div>
 
@@ -29,51 +29,48 @@
             <div class="grid grid-cols-1 gap-6">
                 {{-- Nama Mapel --}}
                 <div class="space-y-1.5">
-                    <label class="block text-[9px] font-black text-slate-500 uppercase tracking-widest px-1">
+                    <label class="block text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">
                         Nama Mata Pelajaran <span class="text-rose-500">*</span>
                     </label>
                     <div class="relative group">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-300 group-focus-within:text-blue-500 transition-colors">
-                            <i class="fa-solid fa-book-open text-[10px]"></i>
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-300 group-focus-within:text-blue-500 transition-colors">
+                            <i class="fa-solid fa-book-open text-[11px]"></i>
                         </span>
-                        <input type="text" 
-                               name="nama_mapel" 
-                               placeholder="MASUKKAN NAMA MATA PELAJARAN" 
+                        <input type="text" name="nama_mapel" placeholder="MASUKKAN NAMA MATA PELAJARAN" 
                                value="{{ old('nama_mapel', $mapel->nama_mapel) }}"
-                               class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[10px] font-black uppercase outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all @error('nama_mapel') border-rose-500 @enderror" 
+                               class="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-lg text-[11px] font-bold uppercase outline-none focus:border-blue-500 transition-all @error('nama_mapel') border-rose-500 @enderror" 
                                required>
                     </div>
                     @error('nama_mapel')
-                        <p class="text-[9px] text-rose-600 font-black uppercase mt-1 tracking-tight flex items-center gap-1">
+                        <p class="text-[9px] text-rose-600 font-black uppercase tracking-widest flex items-center gap-1.5">
                             <i class="fa-solid fa-circle-exclamation"></i> {{ $message }}
                         </p>
                     @enderror
                 </div>
 
-                {{-- Box Info Ramping --}}
-                <div class="bg-blue-50/50 rounded-xl border border-blue-100 border-dashed p-4 flex items-center gap-4">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm shrink-0">
-                        <i class="fa-solid fa-sync text-[10px]"></i>
+                {{-- Box Info --}}
+                <div class="bg-blue-50/30 rounded-lg border border-blue-100 border-dashed p-4 flex items-start gap-4">
+                    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
+                        <i class="fa-solid fa-sync text-[12px]"></i>
                     </div>
                     <div>
-                        <h4 class="text-[10px] font-black text-blue-800 uppercase tracking-tight">Sinkronisasi Otomatis</h4>
-                        <p class="text-[9px] text-blue-500 font-bold leading-tight uppercase opacity-80 mt-0.5">
-                            Perubahan nama akan otomatis diperbarui pada seluruh jadwal, data nilai, dan raport yang sudah terhubung dengan mata pelajaran ini.
+                        <h4 class="text-[10px] font-black text-blue-800 uppercase tracking-widest">Catatan Sinkronisasi</h4>
+                        <p class="text-[10px] text-blue-600 font-bold leading-relaxed uppercase mt-1">
+                            Perubahan pada nama mata pelajaran akan diperbarui secara otomatis pada seluruh data jadwal, absensi, dan nilai yang terkait. Harap pastikan nama baru sudah sesuai dengan standar kurikulum.
                         </p>
                     </div>
                 </div>
             </div>
 
             {{-- Action Buttons --}}
-            <div class="mt-10 pt-6 flex flex-col md:flex-row justify-end items-center gap-3 border-t border-slate-50">
+            <div class="pt-6 border-t border-slate-50 flex justify-end items-center gap-3">
                 <a href="{{ route('admin.mapel.index') }}" 
-                   class="w-full md:w-auto px-8 py-2 rounded-lg text-[9px] font-black text-white bg-rose-600 hover:bg-rose-700 transition-all uppercase tracking-widest text-center shadow-sm shadow-rose-100 active:scale-95">
+                   class="px-8 py-2.5 rounded-lg text-[10px] font-black text-white bg-rose-600 hover:bg-rose-700 transition-all uppercase tracking-widest text-center active:scale-95">
                     Batal
                 </a>
-                </a>
                 <button type="submit" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-black py-2 px-10 rounded-lg shadow-sm transition-all active:scale-95 uppercase text-[9px] tracking-widest flex items-center gap-2">
-                    <i class="fa-solid fa-rotate mr-1"></i> Update Mata Pelajaran
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-black py-2.5 px-10 rounded-lg shadow-sm transition-all active:scale-95 uppercase text-[10px] tracking-widest flex items-center gap-2">
+                    <i class="fa-solid fa-rotate text-[10px]"></i> Simpan Perubahan
                 </button>
             </div>
         </form>
@@ -81,7 +78,7 @@
 </div>
 
 <style>
+    .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 </style>
 @endsection
