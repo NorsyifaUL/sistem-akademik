@@ -31,7 +31,7 @@ class AbsensiController extends Controller
 
         $jadwals = Jadwal::with(['mapel'])
             ->where('guru_id', $guru ? $guru->id : 0)
-            ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu')")
+            ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat')")
             ->get();
 
         return view('guru.absensi.index', compact('jadwals', 'hari_ini'));
