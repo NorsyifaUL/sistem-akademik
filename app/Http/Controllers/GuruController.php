@@ -9,7 +9,6 @@ use App\Models\Nilai;
 use App\Models\Siswa;
 use App\Models\Kelas;
 use App\Models\Setting;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -120,7 +119,15 @@ private function getDashboardData()
         $setting = Setting::first();
         
         // 2. Ambil daftar jadwal yang diampu oleh guru tersebut
-        $jadwals = Jadwal::where('guru_id', $guru->id)->with(['mapel'])->get();
+       $jadwals = Jadwal::where('jadwals.guru_id', $guru->id)
+        ->with(['mapel', 'kelasRelation'])
+        ->join('mapels', 'jadwals.mapel_id', '=', 'mapels.id')
+        // Menggunakan join ke tabel kelas berdasarkan NAMA kelas, bukan ID
+        ->join('kelas', 'jadwals.kelas', '=', 'kelas.nama_kelas')
+        ->orderBy('mapels.nama_mapel', 'asc')
+        ->orderBy('kelas.nama_kelas', 'asc')
+        ->select('jadwals.*')
+        ->get();
         
         $jadwalId = $request->query('jadwal_id');
         $jenisNilai = strtolower(trim($request->query('jenis_nilai', 'harian'))); 

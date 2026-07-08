@@ -42,7 +42,12 @@ class NilaiController extends Controller
         $semesterAktif = trim($setting->semester ?? 'Ganjil');
         $tahunAjaranAktif = $setting->tahun_ajaran; 
 
-        $jadwals = Jadwal::with(['mapel'])->where('guru_id', $guru->id)->get();
+        $jadwals = Jadwal::with(['mapel', 'kelasRelation']) // Pastikan relasi ke kelas dimuat
+        ->where('guru_id', $guru->id)
+        ->join('kelas', 'jadwals.kelas_id', '=', 'kelas.id') // Join ke tabel kelas
+        ->orderBy('kelas', 'asc') // Urutkan berdasarkan nama kelas
+        ->orderBy('mapel_id', 'asc')
+        ->get();
         $siswaData = collect(); 
         $jadwalTerpilih = null;
 
@@ -179,30 +184,38 @@ class NilaiController extends Controller
 
     // Fungsi tambahan tetap dipertahankan
     public function siswa(int $jadwal_id)
-    {
-        $user = Auth::user();
-        $setting = Setting::first();
-        $semesterAktif = $setting->semester ?? 'Ganjil';
+{
+    $user = Auth::user();
+    $setting = Setting::first();
+    $semesterAktif = $setting->semester ?? 'Ganjil';
 
-        $jadwal = Jadwal::with(['mapel'])->where('guru_id', $user->guru->id)->findOrFail($jadwal_id);
-        $kelasInfo = Kelas::where('nama_kelas', $jadwal->kelas)->first();
+    // 1. Ambil data jadwal yang dipilih
+    $jadwal = Jadwal::with(['mapel'])->where('guru_id', $user->guru->id)->findOrFail($jadwal_id);
+    
+    // 2. Ambil daftar jadwal untuk dropdown (yang sudah diurutkan)
+    $jadwals = Jadwal::where('guru_id', $user->guru->id)
+        ->join('kelas', 'jadwals.kelas_id', '=', 'kelas.id')
+        ->orderBy('kelas', 'asc')
+        ->orderBy('mapel_id', 'asc')
+        ->select('jadwals.*')
+        ->get();
 
-        if ($kelasInfo) {
-            $siswas = Siswa::where('kelas_id', $kelasInfo->id)
-                ->with(['nilais' => function($q) use ($jadwal_id, $semesterAktif) {
-                    $q->where('jadwal_id', $jadwal_id)
-                      ->where('semester', $semesterAktif);
-                }])
-                ->orderBy('nama', 'asc')
-                ->get();
-        } else {
-            $siswas = collect();
-        }
-
-        $jadwals = Jadwal::with('mapel')->where('guru_id', $user->guru->id)->get();
-
-        return view('guru.nilai.siswa_list', compact('jadwals', 'jadwal', 'siswas', 'setting'));
+    // 3. Ambil data siswa
+    $kelasInfo = Kelas::where('nama_kelas', $jadwal->kelas)->first();
+    if ($kelasInfo) {
+        $siswas = Siswa::where('kelas_id', $kelasInfo->id)
+            ->with(['nilais' => function($q) use ($jadwal_id, $semesterAktif) {
+                $q->where('jadwal_id', $jadwal_id)
+                  ->where('semester', $semesterAktif);
+            }])
+            ->orderBy('nama', 'asc')
+            ->get();
+    } else {
+        $siswas = collect();
     }
+
+    return view('guru.nilai.siswa_list', compact('jadwals', 'jadwal', 'siswas', 'setting'));
+}
 
     public function input(int $jadwal_id, int $siswa_id)
     {

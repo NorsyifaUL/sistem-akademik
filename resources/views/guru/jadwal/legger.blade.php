@@ -93,11 +93,11 @@
                 <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest whitespace-nowrap">Pilih Kelas:</span>
                 <select onchange="window.location.href='{{ route('guru.jadwal.legger', '') }}/' + this.value" 
                         class="w-full sm:w-auto bg-white border border-gray-300 text-gray-700 text-[11px] font-bold rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-green-500 outline-none">
-                    @foreach($semuaJadwal as $j)
-                        <option value="{{ $j->id }}" {{ $j->id == $jadwal->id ? 'selected' : '' }}>
-                            Kelas {{ $j->kelas }} - {{ $j->mapel->nama_mapel }}
-                        </option>
-                    @endforeach
+                    @foreach($semuaJadwal->sortBy('kelas') as $j)
+                    <option value="{{ $j->id }}" {{ $j->id == $jadwal->id ? 'selected' : '' }}>
+                        Kelas {{ $j->kelas }} - {{ $j->mapel->nama_mapel }}
+                    </option>
+                @endforeach
                 </select>
             </div>
         </div>

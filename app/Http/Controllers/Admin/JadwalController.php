@@ -14,23 +14,33 @@ class JadwalController extends Controller
     // =========================
     // INDEX + SEARCH
     // =========================
-    public function index(Request $request)
+ public function index(Request $request)
     {
-        // Sesuaikan with(), hapus 'kelasRelation' jika di model Jadwal belum ada relasi tersebut
+        // 1. Inisialisasi query dengan relasi
         $query = Jadwal::with(['guru', 'mapel']);
 
-        // Filter berdasarkan kolom 'kelas' (bukan 'kelas_id')
-        if ($request->filled('kelas')) {
-            $query->where('kelas', $request->kelas);
+        // 2. Filter Kelas berdasarkan nama kelas
+        if ($request->filled('kelas_id')) {
+            $kelas = \App\Models\Kelas::find($request->kelas_id);
+            
+            if ($kelas) {
+                // Menggunakan trim() untuk menghapus spasi, 
+                // dan 'like' untuk pencarian yang lebih fleksibel
+                $namaKelasBersih = trim($kelas->nama_kelas);
+                $query->where('kelas', 'like', '%' . $namaKelasBersih . '%');
+            }
         }
 
-        // Filter berdasarkan hari
+        // 3. Filter Hari
         if ($request->filled('hari')) {
             $query->where('hari', $request->hari);
         }
 
-        $jadwal = $query->paginate(10);
-        $data_kelas = Kelas::all(); 
+        // 4. Ambil data dengan pagination
+        $jadwal = $query->latest()->paginate(10);
+
+        // 5. Ambil semua data kelas dan urutkan berdasarkan nama_kelas secara ascending
+        $data_kelas = \App\Models\Kelas::orderBy('nama_kelas', 'asc')->get(); 
 
         return view('admin.jadwal.index', compact('jadwal', 'data_kelas'));
     }
@@ -39,13 +49,15 @@ class JadwalController extends Controller
     // CREATE
     // =========================
     public function create()
-    {
-        $gurus = Guru::all();
-        $mapels = Mapel::all();
-        $data_kelas = Kelas::all();
+{
+    $gurus = Guru::all();
+    $mapels = Mapel::all();
+    
+    // Menambahkan orderBy agar urutan kelas di dropdown menjadi rapi
+    $data_kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
 
-        return view('admin.jadwal.create', compact('gurus', 'mapels', 'data_kelas'));
-    }
+    return view('admin.jadwal.create', compact('gurus', 'mapels', 'data_kelas'));
+}
 
     // =========================
     // STORE
@@ -81,8 +93,10 @@ class JadwalController extends Controller
     {
         $gurus = Guru::all();
         $mapels = Mapel::all();
-        $data_kelas = Kelas::all();
-
+        
+        // Menambahkan orderBy agar urutan kelas di dropdown tetap rapi saat edit
+        $data_kelas = Kelas::orderBy('nama_kelas', 'asc')->get();
+    
         return view('admin.jadwal.edit', compact('jadwal', 'gurus', 'mapels', 'data_kelas'));
     }
 
@@ -98,7 +112,6 @@ class JadwalController extends Controller
             'hari'        => 'required',
             'jam_mulai'   => 'required',
             'jam_selesai' => 'required',
-            'ruangan'     => 'nullable'
         ]);
 
         $jadwal->update([
@@ -108,7 +121,6 @@ class JadwalController extends Controller
             'hari'        => $request->hari,
             'jam_mulai'   => $request->jam_mulai,
             'jam_selesai' => $request->jam_selesai,
-            'ruangan'     => $request->ruangan
         ]);
 
         return redirect()->route('admin.jadwal.index')

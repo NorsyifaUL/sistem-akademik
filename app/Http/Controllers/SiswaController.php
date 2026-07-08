@@ -109,42 +109,37 @@ class SiswaController extends Controller
         $rekapNilai = [];
 
         foreach ($jadwals as $jadwal) {
-            $nilaiData = Nilai::where('siswa_id', $siswa->id)
-                                ->where('jadwal_id', $jadwal->id)
-                                ->where('tahun_ajaran', $tahun_filter)
-                                ->get();
+    $nilaiData = Nilai::where('siswa_id', $siswa->id)
+                        ->where('jadwal_id', $jadwal->id)
+                        ->where('tahun_ajaran', $tahun_filter)
+                        ->get();
 
-            $semuaHarian = $nilaiData->filter(function($n) use ($semester_filter, $semester_kata) {
-                $jenis = strtolower($n->jenis);
-                $cocokSem = ($n->semester == $semester_filter || $n->semester == $semester_kata);
-                return in_array($jenis, ['harian', 'tugas', 'ulangan']) && $cocokSem;
-            });
-            $harian = $semuaHarian->count() > 0 ? round($semuaHarian->avg('nilai')) : 0;
+    // 1. Hitung Rata-rata Harian dengan logic yang sama (round dulu)
+    // Di GuruController: $harianList->avg() di-round.
+    $semuaHarian = $nilaiData->filter(function($n) use ($semester_filter, $semester_kata) {
+        $jenis = strtolower($n->jenis);
+        $cocokSem = ($n->semester == $semester_filter || $n->semester == $semester_kata);
+        return in_array($jenis, ['harian', 'tugas', 'ulangan']) && $cocokSem;
+    });
+    $rataHarian = $semuaHarian->count() > 0 ? round($semuaHarian->avg('nilai')) : 0;
 
-            $dataUts = $nilaiData->filter(function($n) use ($semester_filter, $semester_kata) {
-                $cocokSem = ($n->semester == $semester_filter || $n->semester == $semester_kata);
-                return strtolower($n->jenis) == 'uts' && $cocokSem;
-            })->first();
-            $uts = $dataUts ? round($dataUts->nilai) : 0;
+    // 2. Ambil nilai UTS & UAS
+    $uts = $nilaiData->where('jenis', 'uts')->whereIn('semester', [$semester_filter, $semester_kata])->first()->nilai ?? 0;
+    $uas = $nilaiData->where('jenis', 'uas')->whereIn('semester', [$semester_filter, $semester_kata])->first()->nilai ?? 0;
 
-            $dataUas = $nilaiData->filter(function($n) use ($semester_filter, $semester_kata) {
-                $cocokSem = ($n->semester == $semester_filter || $n->semester == $semester_kata);
-                return strtolower($n->jenis) == 'uas' && $cocokSem;
-            })->first();
-            $uas = $dataUas ? round($dataUas->nilai) : 0;
+    // 3. Hitung Akhir dengan rumus yang SAMA PERSIS dengan GuruController
+    // Guru: round(($rataHarian + $uts + $uas) / 3)
+    $akhir = round(($rataHarian + $uts + $uas) / 3);
 
-            $komponen = collect([$harian, $uts, $uas])->filter(fn($v) => $v > 0);
-            $akhir = $komponen->count() > 0 ? round($komponen->sum() / $komponen->count()) : 0;
-
-            $rekapNilai[] = [
-                'mapel' => $jadwal->mapel->nama_mapel ?? 'Mata Pelajaran',
-                'harian' => $harian,
-                'uts' => $uts,
-                'uas' => $uas,
-                'akhir' => $akhir,
-                'predikat' => $this->hitungPredikat((float)$akhir)
-            ];
-        }
+    $rekapNilai[] = [
+        'mapel' => $jadwal->mapel->nama_mapel ?? 'Mata Pelajaran',
+        'harian' => $rataHarian,
+        'uts' => (int)$uts,
+        'uas' => (int)$uas,
+        'akhir' => (int)$akhir,
+        'predikat' => $this->hitungPredikat((int)$akhir)
+    ];
+}
 
         return view('siswa.nilai', compact('rekapNilai', 'siswa', 'setup', 'listTahun', 'tahun_filter', 'semester_filter'));
     }
